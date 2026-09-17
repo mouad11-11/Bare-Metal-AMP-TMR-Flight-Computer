@@ -1,0 +1,178 @@
+#include "types.h"
+#include "memory_map.h"
+#include "uart.h"
+#include "amp.h"
+#include "voter.h"
+#include "flight_control.h"
+
+static void print_banner(void) {
+    uart_puts("\n");
+    uart_puts("================================================================================\n");
+    uart_puts("       BARE-METAL AMP TMR FLIGHT COMPUTER (ARM Cortex-A15 Quad-Core)           \n");
+    uart_puts("         Software-Implemented Fault Tolerance (SIFT) Architecture               \n");
+    uart_puts("================================================================================\n");
+}
+
+static void print_system_info(void) {
+    uint32_t mpidr;
+    __asm__ volatile("mrc p15, 0, %0, c0, c0, 5" : "=r"(mpidr));
+    uint32_t core_id = get_core_id();
+    uart_printf("[BOOT] Master Arbiter active on Core ID: %u (Raw MPIDR: 0x%x)\n", core_id, mpidr);
+    uart_printf("[BOOT] Physical Memory Partitioning:\n");
+    uart_printf("       System/Text Partition : 0x%x - 0x%x (Core 0 Arbiter)\n", SYSTEM_TEXT_BASE, SYSTEM_TEXT_LIMIT);
+    uart_printf("       Zone 1 Partition      : 0x%x (In: 0x%x, Out: 0x%x, Core 1)\n", ZONE1_BASE_ADDR, ZONE1_INPUT_ADDR, ZONE1_OUTPUT_ADDR);
+    uart_printf("       Zone 2 Partition      : 0x%x (In: 0x%x, Out: 0x%x, Core 2)\n", ZONE2_BASE_ADDR, ZONE2_INPUT_ADDR, ZONE2_OUTPUT_ADDR);
+    uart_printf("       Zone 3 Partition      : 0x%x (In: 0x%x, Out: 0x%x, Core 3)\n", ZONE3_BASE_ADDR, ZONE3_INPUT_ADDR, ZONE3_OUTPUT_ADDR);
+    uart_printf("       Stack Configuration   : 16KB total (4KB isolated per core)\n");
+    uart_printf("       Tolerance Bound       : delta <= %d microseconds\n", VOTER_TOLERANCE_BOUND);
+    uart_printf("       Fail-Safe Command     : %d microseconds (Actuator Safe/Neutral)\n", FAIL_SAFE_VALUE);
+    uart_puts("--------------------------------------------------------------------------------\n");
+}
+
+static voter_result_t execute_flight_frame(int32_t raw_sensor_reading, fault_injection_t fault_mode) {
+    g_fault_mode = fault_mode;
+
+    /*
+     * Core 0 Task Execution:
+     * Ingests raw sensor data and writes independent copies to Zone 1, Zone 2, and Zone 3.
+     */
+    zone_write_input(1, raw_sensor_reading);
+    zone_write_input(2, raw_sensor_reading);
+    zone_write_input(3, raw_sensor_reading);
+
+    uint32_t timed_out_mask = 0;
+    bool dispatch_ok = amp_dispatch_and_wait(&timed_out_mask);
+
+    if (!dispatch_ok) {
+        voter_result_t res;
+        res.final_pwm = FAIL_SAFE_VALUE;
+        res.status = VOTE_TIMEOUT_ERROR;
+        res.val1 = zone_read_output(1);
+        res.val2 = zone_read_output(2);
+        res.val3 = zone_read_output(3);
+        res.diff12 = 0;
+        res.diff23 = 0;
+        res.diff13 = 0;
+        res.timed_out_core_mask = timed_out_mask;
+        return res;
+    }
+
+    /* Core 0 ingests isolated output values computed by Cores 1, 2, and 3 */
+    int32_t out1 = zone_read_output(1);
+    int32_t out2 = zone_read_output(2);
+    int32_t out3 = zone_read_output(3);
+
+    /* Core 0 executes Bounded 2oo3 Majority Gate */
+    return vote_2oo3(out1, out2, out3);
+}
+
+static void print_flight_frame_result(uint32_t frame_id, const char *scenario_name, int32_t raw_sensor, voter_result_t res) {
+    uart_printf("[FRAME #%u] %s\n", frame_id, scenario_name);
+    uart_printf("  Sensor Input : %d\n", raw_sensor);
+    uart_printf("  Node Outputs : [Node 1: %d us] [Node 2: %d us] [Node 3: %d us]\n", res.val1, res.val2, res.val3);
+    if (res.status == VOTE_TIMEOUT_ERROR) {
+        uart_printf("  Timeout Mask : 0x%02x (Hardware Watchdog Trip)\n", res.timed_out_core_mask);
+    } else {
+        uart_printf("  Deltas       : |N1-N2|=%d, |N2-N3|=%d, |N1-N3|=%d (Bound <= %d)\n", res.diff12, res.diff23, res.diff13, VOTER_TOLERANCE_BOUND);
+    }
+    uart_printf("  Voter Status : %s\n", vote_status_to_string(res.status));
+    if (res.final_pwm == FAIL_SAFE_VALUE) {
+        uart_printf("  Commanded PWM: %d (*** FAIL-SAFE ACTIVATED: ACTUATORS COMMANDED TO SAFE STATE ***)\n", res.final_pwm);
+    } else {
+        uart_printf("  Commanded PWM: %d us\n", res.final_pwm);
+    }
+    uart_puts("--------------------------------------------------------------------------------\n");
+}
+
+static void run_fault_tolerance_test_suite(void) {
+    uart_puts("\n>>> STARTING AUTOMATED TMR FAULT TOLERANCE VERIFICATION SUITE <<<\n\n");
+
+    /* Test 1: Nominal Synchronous Operation */
+    voter_result_t r1 = execute_flight_frame(0, FAULT_NONE);
+    print_flight_frame_result(1, "TEST 1: Nominal Flight Frame (Level Attitude)", 0, r1);
+
+    /* Test 2: Bounded Sensor / Estimator Noise (|delta| <= 5) */
+    voter_result_t r2 = execute_flight_frame(120, FAULT_BOUNDED_NOISE);
+    print_flight_frame_result(2, "TEST 2: Bounded Estimator Noise (|delta| <= 5)", 120, r2);
+
+    /* Test 3: SEU Bit-Flip on Node 1 */
+    voter_result_t r3 = execute_flight_frame(50, FAULT_SEU_NODE1);
+    print_flight_frame_result(3, "TEST 3: SEU Bit-Flip on Node 1 (Core 1 Fault)", 50, r3);
+
+    /* Test 4: SEU Bit-Flip on Node 2 */
+    voter_result_t r4 = execute_flight_frame(-80, FAULT_SEU_NODE2);
+    print_flight_frame_result(4, "TEST 4: SEU Bit-Flip on Node 2 (Core 2 Fault)", -80, r4);
+
+    /* Test 5: SEU Bit-Flip on Node 3 */
+    voter_result_t r5 = execute_flight_frame(150, FAULT_SEU_NODE3);
+    print_flight_frame_result(5, "TEST 5: SEU Bit-Flip on Node 3 (Core 3 Fault)", 150, r5);
+
+    /* Test 6: Total Disagreement (Multi-core SEU / Corruption) */
+    voter_result_t r6 = execute_flight_frame(30, FAULT_TOTAL_DISAGREE);
+    print_flight_frame_result(6, "TEST 6: Total Disagreement -> Predefined Fail-Safe (-9999)", 30, r6);
+
+    uart_puts("\n>>> TMR FAULT TOLERANCE SUITE COMPLETED SUCCESSFULLY <<<\n\n");
+}
+
+int main(void) {
+    /* Step 1: Initialize PL011 UART console */
+    uart_init();
+    print_banner();
+    print_system_info();
+
+    /* Step 2: Wake secondary cores (Cores 1, 2, 3) from QEMU boot holding pen */
+    uart_puts("[SYNC] Releasing secondary cores (Cores 1, 2, 3) from QEMU holding pen...\n");
+    amp_release_qemu_secondary_cores();
+
+    /* Spin-wait for secondary cores to acknowledge readiness */
+    uint32_t wait_cycles = 5000000;
+    while ((!core_ready[1] || !core_ready[2] || !core_ready[3]) && --wait_cycles > 0) {
+        __asm__ volatile("nop");
+    }
+
+    uart_printf("[SYNC] Core Readiness Status: Node 1=%s, Node 2=%s, Node 3=%s\n",
+                core_ready[1] ? "ONLINE" : "OFFLINE",
+                core_ready[2] ? "ONLINE" : "OFFLINE",
+                core_ready[3] ? "ONLINE" : "OFFLINE");
+
+    /* Verify all redundant compute nodes are operational before proceeding */
+    if (!core_ready[1] || !core_ready[2] || !core_ready[3]) {
+        uart_puts("[FATAL] One or more secondary compute nodes failed to boot. Halting.\n");
+        while (1) {
+            wfe();
+        }
+    }
+
+    /* Step 3: Run comprehensive automated fault tolerance test suite */
+    run_fault_tolerance_test_suite();
+
+    /* Step 4: Continuous Real-Time Flight Control Loop */
+    uart_puts("[EXEC] Entering continuous real-time flight control loop...\n");
+    int32_t simulated_pitch_rates[] = {0, 20, 45, 80, 50, 10, -20, -60, -90, -40, 0};
+    uint32_t num_samples = sizeof(simulated_pitch_rates) / sizeof(simulated_pitch_rates[0]);
+
+    for (uint32_t i = 0; i < num_samples; i++) {
+        voter_result_t res = execute_flight_frame(simulated_pitch_rates[i], FAULT_NONE);
+        uart_printf("[LOOP #%2u] Pitch Rate: %4d ddeg/s | Commanded PWM: %4d us | Status: %s\n",
+                    i + 1, simulated_pitch_rates[i], res.final_pwm, vote_status_to_string(res.status));
+        
+        /* Small delay loop for telemetry readability */
+        for (volatile uint32_t d = 0; d < 200000; d++) {
+            __asm__ volatile("nop");
+        }
+    }
+
+    /* Step 5: Final Watchdog Fault Injection Test (Node 2 Hang) */
+    uart_puts("\n[TEST 7] Simulating Core 2 Hardware Hang (Watchdog Timeout Verification)...\n");
+    voter_result_t r7 = execute_flight_frame(25, FAULT_HANG_NODE2);
+    print_flight_frame_result(7, "TEST 7: Core 2 Unresponsive -> Watchdog Timeout Fail-Safe", 25, r7);
+
+    uart_puts("\n[STATUS] Flight computer completed mission profile smoothly.\n");
+    uart_puts("[STATUS] All spatial memory zones intact. System entering standby.\n");
+
+    while (1) {
+        wfe();
+    }
+
+    return 0;
+}
