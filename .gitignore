@@ -1,0 +1,31 @@
+# Build Artifacts
+build/
+*.o
+*.elf
+*.bin
+*.asm
+*.map
+
+# Temporary logs and test runs
+*.log
+*output.txt
+qemu_*.txt
+*.tmp
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Toolchain download scratch (keep local tools untracked)
+tools/
+D:/tools/
