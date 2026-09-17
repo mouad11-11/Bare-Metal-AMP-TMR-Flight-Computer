@@ -25,41 +25,22 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-:: Step 3: Terminal Architecture & Voter Breakdown
+:: Step 3: Interactive Telemetry Monitor
 echo.
-echo [3/4] Generating system architecture and voter decision matrix...
-where python.exe >nul 2>&1
-if %ERRORLEVEL% EQU 0 (
-    python.exe "%~dp0visualize_terminal.py"
-    python.exe "%~dp0visualize_system.py"
-) else (
-    echo [INFO] Python not found in PATH; skipping graph plot generation.
-)
-
-:: Step 4: Optional Interactive Viewer
-echo.
-echo [4/4] Review options:
+echo [3/3] Telemetry & Monitoring:
 echo   [1] Launch Live Desktop GUI Monitor (Tkinter)
-echo   [2] Open HTML Interactive Visual Dashboard (Browser)
-echo   [3] Open High-Resolution System Plot (Image)
-echo   [4] Exit
+echo   [2] Exit
 echo.
-set /p CHOICE="Select an option (1-4, default 4): "
+set /p CHOICE="Select an option (1-2, default 1): "
+if "%CHOICE%"=="" set CHOICE=1
 
 if "%CHOICE%"=="1" (
     where python.exe >nul 2>&1
     if %ERRORLEVEL% EQU 0 (
+        echo [INFO] Launching live desktop monitor...
         start python.exe "%~dp0live_monitor.py"
     ) else (
         echo [ERROR] Python is required to run the desktop GUI.
-    )
-) else if "%CHOICE%"=="2" (
-    start "" "%~dp0flight_computer_dashboard.html"
-) else if "%CHOICE%"=="3" (
-    if exist "%~dp0tmr_system_visualization.png" (
-        start "" "%~dp0tmr_system_visualization.png"
-    ) else (
-        echo [INFO] tmr_system_visualization.png not found.
     )
 )
 

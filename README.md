@@ -101,34 +101,17 @@ The automated test suite runs during boot and validates all 7 fault-injection sc
 
 ---
 
-## 📊 Visualizers & Telemetry Tools
+## 📊 Live Desktop Telemetry Monitor
 
-This repository provides multiple open-source visualization interfaces:
+Launch the desktop GUI monitor featuring real-time PL011 UART log streaming and live animated 2oo3 voter bar charts:
 
-### 1. High-Resolution Architecture & Telemetry Plot
-Generate publication-quality 4-panel figures using Matplotlib:
-```cmd
-python visualize_system.py
-```
-*(Saved to `tmr_system_visualization.png`. Add `--show` to open an interactive window)*
-
-### 2. Native Desktop Telemetry GUI (Tkinter + Matplotlib)
-Launch a live desktop monitor with real-time UART log streaming and animated voter bar charts:
 ```cmd
 python live_monitor.py
 ```
 
-### 3. Interactive Web Digital Twin
-Double-click [`flight_computer_dashboard.html`](flight_computer_dashboard.html) or run:
-```cmd
-start flight_computer_dashboard.html
-```
-
-### 4. Lightweight Terminal Visualizer
-Print the full memory map and voter decision matrix directly to the console:
-```cmd
-python visualize_terminal.py
-```
+* **Live Telemetry Stream:** Reads raw serial telemetry directly from the PL011 UART (`0x1C090000`).
+* **Dynamic Voter Graph:** Compares outputs from Node 1 (Core 1), Node 2 (Core 2), and Node 3 (Core 3) against the 2oo3 consensus command in real time.
+* **Core Status Indicators:** Real-time health indicators showing online and fault status for Cores 0 through 3.
 
 ---
 
@@ -169,13 +152,10 @@ qemu-system-arm -M vexpress-a15 -cpu cortex-a15 -smp 4 -m 128M -nographic \
 │   ├── uart.h / uart.c         # ARM PL011 UART console telemetry driver at 0x1C090000
 │   └── types.h                 # Fixed-width types, DMB/DSB/ISB/SEV/WFE architectural barriers
 ├── linker.ld                   # Linker script defining 16MB System, 16KB stack, and Zone origins
+├── live_monitor.py             # Native desktop Tkinter GUI monitor with real-time plots
 ├── quickstart.bat              # One-click review script for Windows
 ├── quickstart.sh               # One-click review script for Linux/macOS/WSL
 ├── test_flight.ps1             # Automated regression test runner
-├── visualize_system.py         # 4-panel publication plot generator (Matplotlib)
-├── visualize_terminal.py       # Pure ASCII/Unicode console visualizer
-├── live_monitor.py             # Native desktop Tkinter GUI monitor
-├── flight_computer_dashboard.html # Standalone interactive HTML visualizer
 ├── Makefile                    # Standard GNU Makefile
 ├── CMakeLists.txt              # CMake build configuration
 ├── toolchain-arm-none-eabi.cmake # CMake cross-compilation toolchain file

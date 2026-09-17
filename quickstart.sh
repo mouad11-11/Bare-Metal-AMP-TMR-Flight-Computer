@@ -53,15 +53,12 @@ else
     exit 1
 fi
 
-# 4. Terminal Visualizer & Plots
+# 4. Interactive Live Telemetry Monitor
 echo ""
-echo "[4/4] Generating system architecture matrix & plots..."
-if command -v python3 >/dev/null 2>&1; then
-    python3 visualize_terminal.py
-    python3 visualize_system.py || true
-else
-    echo "[INFO] python3 not found; skipping graphic generation."
-fi
+echo "[4/4] Interactive Telemetry Monitor:"
+echo "To launch the live desktop GUI monitor with real-time charts:"
+echo "  python3 live_monitor.py"
+echo ""
 
 echo "=============================================================================="
 echo " [SUCCESS] Review complete! All 7 fault tolerance scenarios verified."

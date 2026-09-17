@@ -62,9 +62,6 @@ class TmrFlightMonitorApp:
         self.btn_run = tk.Button(ctrl_bar, text="▶  Run QEMU Simulation", command=self.start_simulation, bg="#10b981", fg="#ffffff", activebackground="#059669", activeforeground="#ffffff", font=("Segoe UI", 9, "bold"), padx=12, pady=5, relief="flat", cursor="hand2")
         self.btn_run.pack(side="left", padx=(0, 10))
 
-        self.btn_plot = tk.Button(ctrl_bar, text="📊  Generate High-Res Plot", command=self.generate_plot_cmd, bg="#3b82f6", fg="#ffffff", activebackground="#2563eb", activeforeground="#ffffff", font=("Segoe UI", 9, "bold"), padx=12, pady=5, relief="flat", cursor="hand2")
-        self.btn_plot.pack(side="left", padx=(0, 10))
-
         self.btn_clear = tk.Button(ctrl_bar, text="🧹  Clear Console", command=self.clear_console, bg="#334155", fg="#cbd5e1", activebackground="#475569", activeforeground="#ffffff", font=("Segoe UI", 9), padx=10, pady=5, relief="flat", cursor="hand2")
         self.btn_clear.pack(side="left")
 
@@ -146,15 +143,6 @@ class TmrFlightMonitorApp:
 
     def clear_console(self):
         self.console.delete("1.0", "end")
-
-    def generate_plot_cmd(self):
-        try:
-            from visualize_system import get_default_dataset, generate_visualization
-            frames, loops = get_default_dataset()
-            generate_visualization(frames, loops, save_path="tmr_system_visualization.png")
-            messagebox.showinfo("Visualization Exported", "High-resolution plot generated successfully:\ntmr_system_visualization.png")
-        except Exception as e:
-            messagebox.showerror("Export Failed", f"Could not generate plot: {e}")
 
     def start_simulation(self):
         if self.running:
