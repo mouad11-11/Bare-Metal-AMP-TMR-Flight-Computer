@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bare-Metal AMP TMR Flight Computer Visualizer</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .pulse-alert {
+      animation: pulse-slow 1.5s infinite;
+    }
+  </style>
+</head>
+<body class="bg-[var(--background,#0f172a)] text-[var(--foreground,#f8fafc)] antialiased min-h-screen p-4 md:p-6 lg:p-8">
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Header Banner -->
+    <header class="bg-[var(--card,#1e293b)] border border-[var(--border,#334155)] rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            ARM Cortex-A15 (Quad-Core)
+          </span>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+            SIFT TMR Architecture
+          </span>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            Bare-Metal AMP
+          </span>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight mt-2 text-[var(--foreground,#f8fafc)]">
+          Bare-Metal AMP TMR Flight Computer Visualizer
+        </h1>
+        <p class="text-sm text-[var(--muted-foreground,#94a3b8)] mt-1">
+          Real-time interactive digital twin of the 2-out-of-3 Bounded Majority Voter, physical spatial memory partitions, and multi-core execution flow.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3 bg-[var(--background,#0f172a)] px-4 py-3 rounded-xl border border-[var(--border,#334155)] text-xs">
+        <div>
+          <div class="text-[var(--muted-foreground,#94a3b8)]">Target Hardware</div>
+          <div class="font-mono font-semibold text-emerald-400">QEMU vexpress-a15</div>
+        </div>
+        <div class="h-8 w-px bg-[var(--border,#334155)] mx-1"></div>
+        <div>
+          <div class="text-[var(--muted-foreground,#94a3b8)]">Tolerance Bound</div>
+          <div class="font-mono font-semibold text-amber-400">|Δ| ≤ 5 μs</div>
+        </div>
+        <div class="h-8 w-px bg-[var(--border,#334155)] mx-1"></div>
+        <div>
+          <div class="text-[var(--muted-foreground,#94a3b8)]">Fail-Safe Output</div>
+          <div class="font-mono font-semibold text-rose-400">-9999 μs</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid: Top Interactive Simulation & Voting Gate -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left Column: Controls & Interactive Scenarios (5 cols) -->
+      <section class="lg:col-span-5 space-y-6">
+        <div class="bg-[var(--card,#1e293b)] border border-[var(--border,#334155)] rounded-2xl p-5 shadow-lg space-y-5">
+          <div class="flex items-center justify-between">
+            <h2 class="font-bold text-lg text-[var(--foreground,#f8fafc)] flex items-center gap-2">
+              <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+              </svg>
+              Flight Control & Fault Scenarios
+            </h2>
+            <span class="text-xs font-mono bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded border border-indigo-700">Core 0 Dispatch</span>
+          </div>
+
+          <!-- Attitude Pitch Rate Input Slider -->
+          <div class="bg-[var(--background,#0f172a)] p-4 rounded-xl border border-[var(--border,#334155)] space-y-2">
+            <div class="flex justify-between items-center text-xs">
+              <label for="sensor-slider" class="font-medium text-[var(--foreground,#f8fafc)]">Simulated Pitch Rate (Sensor Ingest)</label>
+              <span id="sensor-val-display" class="font-mono font-bold text-indigo-400 text-sm">0 ddeg/s</span>
+            </div>
+            <input id="sensor-slider" type="range" min="-100" max="100" value="0" step="5"
+                   class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+            <div class="flex justify-between text-[10px] text-[var(--muted-foreground,#94a3b8)] font-mono">
+              <span>-100 ddeg/s (Pitch Down)</span>
+              <span>0 (Level Flight)</span>
+              <span>+100 ddeg/s (Pitch Up)</span>
+            </div>
+          </div>
+
+          <!-- Fault Injection Presets -->
+          <div class="space-y-2">
+            <div class="text-xs font-semibold text-[var(--muted-foreground,#94a3b8)] uppercase tracking-wider">Fault Injection Triggers</div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <button onclick="setScenario('nominal')" id="btn-nominal" class="scenario-btn p-2.5 rounded-xl border font-medium text-left transition flex items-center gap-2 bg-emerald-950/40 border-emerald-600/60 text-emerald-300">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                Nominal (Unanimous)
+              </button>
+              <button onclick="setScenario('noise')" id="btn-noise" class="scenario-btn p-2.5 rounded-xl border font-medium text-left transition flex items-center gap-2 bg-[var(--background,#0f172a)] border-[var(--border,#334155)] text-[var(--foreground,#f8fafc)] hover:border-slate-500">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                Bounded Noise (|Δ|≤5)
+              </button>
+              <button onclick="setScenario('seu1')" id="btn-seu1" class="scenario-btn p-2.5 rounded-xl border font-medium text-left transition flex items-center gap-2 bg-[var(--background,#0f172a)] border-[var(--border,#334155)] text-[var(--foreground,#f8fafc)] hover:border-slate-500">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+                Node 1 Bit-Flip (SEU)
+              </button>
+              <button onclick="setScenario('seu2')" id="btn-seu2" class="scenario-btn p-2.5 rounded-xl border font-medium text-left transition flex items-center gap-2 bg-[var(--background,#0f172a)] border-[var(--border,#334155)] text-[var(--foreground,#f8fafc)] hover:border-slate-500">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+                Node 2 Bit-Flip (SEU)
+              </button>
+              <button onclick="setScenario('seu3')" id="btn-seu3" class="scenario-btn p-2.5 rounded-xl border font-medium text-left transition flex items-center gap-2 bg-[var(--background,#0f172a)] border-[var(--border,#334155)] text-[var(--foreground,#f8fafc)] hover:border-slate-500">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+                Node 3 Bit-Flip (SEU)
+              </button>
+              <button onclick="setScenario('disagree')" id="btn-disagree" class="scenario-btn p-2.5 rounded-xl border font-medium text-left transition flex items-center gap-2 bg-[var(--background,#0f172a)] border-[var(--border,#334155)] text-[var(--foreground,#f8fafc)] hover:border-slate-500">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+                Total Disagreement
+              </button>
+              <button onclick="setScenario('hang')" id="btn-hang" class="scenario-btn col-span-2 p-2.5 rounded-xl border font-medium text-left transition flex items-center gap-2 bg-[var(--background,#0f172a)] border-[var(--border,#334155)] text-[var(--foreground,#f8fafc)] hover:border-slate-500">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                Core 2 Hardware Hang (Watchdog Timeout Trigger)
+              </button>
+            </div>
+          </div>
+
+          <!-- Scenario description callout -->
+          <div id="scenario-desc" class="text-xs p-3 rounded-xl bg-indigo-950/30 border border-indigo-800/40 text-indigo-300">
+            <strong>Nominal Mode:</strong> Cores 1, 2, and 3 compute identical actuator PWM commands. Full consensus is verified by the voter.
+          </div>
+        </div>
+
+        <!-- Physical Memory Architecture Card -->
+        <div class="bg-[var(--card,#1e293b)] border border-[var(--border,#334155)] rounded-2xl p-5 shadow-lg space-y-4">
+          <h2 class="font-bold text-lg text-[var(--foreground,#f8fafc)] flex items-center gap-2">
+            <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7M4 7c0-2 1.5-3 3.5-3h9c2 0 3.5 1 3.5 3M4 7h16"/>
+            </svg>
+            Spatial Memory Partitioning
+          </h2>
+
+          <div class="space-y-2 font-mono text-xs">
+            <div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700 flex justify-between items-center">
+              <div>
+                <span class="text-emerald-400 font-bold">System Partition</span>
+                <div class="text-[10px] text-slate-400">Core 0 Arbiter | Text, .bss, Vector Table</div>
+              </div>
+              <span class="px-2 py-1 rounded bg-slate-800 text-slate-300 text-[11px]">0x80000000</span>
+            </div>
+
+            <div id="mem-zone1" class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700 flex justify-between items-center transition">
+              <div>
+                <span class="text-sky-400 font-bold">Zone 1 Partition</span>
+                <div class="text-[10px] text-slate-400">Core 1 Exclusive | In: 0x81000000, Out: 0x81000004</div>
+              </div>
+              <span class="px-2 py-1 rounded bg-slate-800 text-slate-300 text-[11px]">0x81000000</span>
+            </div>
+
+            <div id="mem-zone2" class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700 flex justify-between items-center transition">
+              <div>
+                <span class="text-amber-400 font-bold">Zone 2 Partition</span>
+                <div class="text-[10px] text-slate-400">Core 2 Exclusive | In: 0x82000000, Out: 0x82000004</div>
+              </div>
+              <span class="px-2 py-1 rounded bg-slate-800 text-slate-300 text-[11px]">0x82000000</span>
+            </div>
+
+            <div id="mem-zone3" class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700 flex justify-between items-center transition">
+              <div>
+                <span class="text-purple-400 font-bold">Zone 3 Partition</span>
+                <div class="text-[10px] text-slate-400">Core 3 Exclusive | In: 0x83000000, Out: 0x83000004</div>
+              </div>
+              <span class="px-2 py-1 rounded bg-slate-800 text-slate-300 text-[11px]">0x83000000</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: 2oo3 Voter Gate & Compute Nodes (7 cols) -->
+      <section class="lg:col-span-7 space-y-6">
+
+        <!-- 3 Redundant Nodes Output Display -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Node 1 Card -->
+          <div id="card-node1" class="bg-[var(--card,#1e293b)] border border-[var(--border,#334155)] rounded-2xl p-4 shadow-md transition-all">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold font-mono text-sky-400">CORE 1 (NODE 1)</span>
+              <span id="badge-node1" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-700">OK</span>
+            </div>
+            <div class="text-[11px] text-[var(--muted-foreground,#94a3b8)]">Zone 1 (0x81000004)</div>
+            <div id="val-node1" class="text-2xl font-mono font-bold text-[var(--foreground,#f8fafc)] mt-1">1500 <span class="text-xs font-normal text-slate-400">μs</span></div>
+            <div id="status-node1" class="text-[10px] text-emerald-400 mt-2 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Valid Nominal
+            </div>
+          </div>
+
+          <!-- Node 2 Card -->
+          <div id="card-node2" class="bg-[var(--card,#1e293b)] border border-[var(--border,#334155)] rounded-2xl p-4 shadow-md transition-all">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold font-mono text-amber-400">CORE 2 (NODE 2)</span>
+              <span id="badge-node2" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-700">OK</span>
+            </div>
+            <div class="text-[11px] text-[var(--muted-foreground,#94a3b8)]">Zone 2 (0x82000004)</div>
+            <div id="val-node2" class="text-2xl font-mono font-bold text-[var(--foreground,#f8fafc)] mt-1">1500 <span class="text-xs font-normal text-slate-400">μs</span></div>
+            <div id="status-node2" class="text-[10px] text-emerald-400 mt-2 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Valid Nominal
+            </div>
+          </div>
+
+          <!-- Node 3 Card -->
+          <div id="card-node3" class="bg-[var(--card,#1e293b)] border border-[var(--border,#334155)] rounded-2xl p-4 shadow-md transition-all">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold font-mono text-purple-400">CORE 3 (NODE 3)</span>
+              <span id="badge-node3" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-700">OK</span>
+            </div>
+            <div class="text-[11px] text-[var(--muted-foreground,#94a3b8)]">Zone 3 (0x83000004)</div>
+            <div id="val-node3" class="text-2xl font-mono font-bold text-[var(--foreground,#f8fafc)] mt-1">1500 <span class="text-xs font-normal text-slate-400">μs</span></div>
+            <div id="status-node3" class="text-[10px] text-emerald-400 mt-2 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Valid Nominal
+            </div>
+          </div>
+        </div>
+
+        <!-- 2oo3 Bounded Majority Voter Evaluation Card -->
+        <div class="bg-[var(--card,#1e293b)] border border-[var(--border,#334155)] rounded-2xl p-6 shadow-xl space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border,#334155)] pb-4">
+            <div>
+              <h2 class="font-bold text-xl text-[var(--foreground,#f8fafc)] flex items-center gap-2">
+                <span class="inline-block w-3 h-3 rounded-full bg-emerald-400"></span>
+                2-out-of-3 (2oo3) Bounded Majority Voter
+              </h2>
+              <p class="text-xs text-[var(--muted-foreground,#94a3b8)] mt-0.5">Executed on Core 0 Arbiter with Watchdog Guard</p>
+            </div>
+            <span id="voter-status-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 self-start sm:self-auto">
+              UNANIMOUS (All Nodes Agree)
+            </span>
+          </div>
+
+          <!-- Pairwise Delta Cards -->
+          <div class="grid grid-cols-3 gap-3 text-center">
+            <div id="delta-box-12" class="p-3 rounded-xl bg-slate-900 border border-slate-700">
+              <div class="text-[10px] text-[var(--muted-foreground,#94a3b8)] font-mono">|Node 1 - Node 2|</div>
+              <div id="delta-val-12" class="text-lg font-mono font-bold text-emerald-400 my-0.5">0 μs</div>
+              <span id="delta-tag-12" class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400">PASS (≤5)</span>
+            </div>
+
+            <div id="delta-box-23" class="p-3 rounded-xl bg-slate-900 border border-slate-700">
+              <div class="text-[10px] text-[var(--muted-foreground,#94a3b8)] font-mono">|Node 2 - Node 3|</div>
+              <div id="delta-val-23" class="text-lg font-mono font-bold text-emerald-400 my-0.5">0 μs</div>
+              <span id="delta-tag-23" class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400">PASS (≤5)</span>
+            </div>
+
+            <div id="delta-box-13" class="p-3 rounded-xl bg-slate-900 border border-slate-700">
+              <div class="text-[10px] text-[var(--muted-foreground,#94a3b8)] font-mono">|Node 1 - Node 3|</div>
+              <div id="delta-val-13" class="text-lg font-mono font-bold text-emerald-400 my-0.5">0 μs</div>
+              <span id="delta-tag-13" class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400">PASS (≤5)</span>
+            </div>
+          </div>
+
+          <!-- Commanded Actuator PWM Gauge Output -->
+          <div class="bg-[var(--background,#0f172a)] p-5 rounded-xl border border-[var(--border,#334155)] space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-semibold text-[var(--foreground,#f8fafc)] uppercase tracking-wider">Commanded Actuator Pulse Width</span>
+              <span id="final-pwm-display" class="font-mono text-2xl font-black text-emerald-400">1500 <span class="text-sm font-normal text-slate-400">μs</span></span>
+            </div>
+
+            <!-- Progress bar representing 1000us to 2000us -->
+            <div class="w-full bg-slate-800 h-3.5 rounded-full overflow-hidden relative border border-slate-700">
+              <div id="pwm-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-300" style="width: 50%;"></div>
+            </div>
+
+            <div class="flex justify-between text-[10px] font-mono text-[var(--muted-foreground,#94a3b8)]">
+              <span>1000 μs (Full Reverse / Min)</span>
+              <span>1500 μs (Neutral)</span>
+              <span>2000 μs (Full Forward / Max)</span>
+            </div>
+
+            <!-- Fail-safe Alert Banner (Hidden when nominal) -->
+            <div id="failsafe-banner" class="hidden p-4 rounded-xl bg-rose-950/80 border border-rose-500 text-rose-200 text-xs flex items-center gap-3 pulse-alert">
+              <svg class="w-6 h-6 text-rose-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <div>
+                <strong class="font-bold text-sm block">FAIL-SAFE ENGAGED (-9999 μs)</strong>
+                Total disagreement or core timeout detected. Actuators commanded to safe neutral/power-off state.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-Time Waveform Plot -->
+        <div class="bg-[var(--card,#1e293b)] border border-[var(--border,#334155)] rounded-2xl p-5 shadow-lg space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-sm text-[var(--foreground,#f8fafc)] flex items-center gap-2">
+              <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+              </svg>
+              Real-Time Flight Attitude & Commanded Actuator Response
+            </h3>
+            <span class="text-[10px] text-slate-400 font-mono">Live Telemetry Waveform</span>
+          </div>
+          <canvas id="telemetryCanvas" width="700" height="140" class="w-full h-32 bg-slate-950 rounded-xl border border-slate-800"></canvas>
+        </div>
+
+      </section>
+    </div>
+
+    <!-- Telemetry Log Terminal Output -->
+    <section class="bg-[var(--card,#1e293b)] border border-[var(--border,#334155)] rounded-2xl p-5 shadow-lg space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-sm text-[var(--foreground,#f8fafc)] flex items-center gap-2 font-mono">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+          PL011 UART Telemetry Log (Address: 0x1C090000)
+        </h3>
+        <button onclick="clearConsole()" class="text-xs px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 font-mono transition">Clear Log</button>
+      </div>
+      <div id="uart-console" class="h-44 overflow-y-auto font-mono text-[11px] p-4 rounded-xl bg-slate-950 text-emerald-400 border border-slate-800 space-y-1 leading-relaxed">
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // State Variables
+    let currentScenario = 'nominal';
+    let sensorValue = 0;
+    const historyData = [];
+    const maxHistory = 50;
+
+    const scenarios = {
+      nominal: {
+        name: "Nominal (Unanimous)",
+        desc: "All three cores agree within tolerance bound (Δ = 0). Voter outputs consensus average (1500 μs).",
+        compute: (raw) => {
+          const delta = Math.floor((raw * 3) / 10);
+          const nominalPwm = 1500 + delta;
+          return { y1: nominalPwm, y2: nominalPwm, y3: nominalPwm, timeout: false };
+        }
+      },
+      noise: {
+        name: "Bounded Noise (|Δ| ≤ 5)",
+        desc: "State estimation/sensor noise introduces slight variance within tolerance bound (Δ ≤ 5). Nodes 1, 2, and 3 outputs are averaged.",
+        compute: (raw) => {
+          const delta = Math.floor((raw * 3) / 10);
+          const base = 1500 + delta;
+          return { y1: base + 2, y2: base - 3, y3: base + 1, timeout: false };
+        }
+      },
+      seu1: {
+        name: "SEU Bit-Flip on Node 1",
+        desc: "Cosmic ray SEU flips bit 9 in Node 1 arithmetic register (+512 μs). Voter masks Node 1 and averages agreeing Nodes 2 & 3.",
+        compute: (raw) => {
+          const delta = Math.floor((raw * 3) / 10);
+          const base = 1500 + delta;
+          return { y1: Math.min(2000, base ^ (1 << 9)), y2: base, y3: base, timeout: false };
+        }
+      },
+      seu2: {
+        name: "SEU Bit-Flip on Node 2",
+        desc: "Radiation strikes Node 2 state output register (bit 8 flipped, -256 μs). Voter isolates Node 2 and executes consensus on Nodes 1 & 3.",
+        compute: (raw) => {
+          const delta = Math.floor((raw * 3) / 10);
+          const base = 1500 + delta;
+          return { y1: base, y2: Math.max(1000, base ^ (1 << 8)), y3: base, timeout: false };
+        }
+      },
+      seu3: {
+        name: "SEU Bit-Flip on Node 3",
+        desc: "SEU corrupts Node 3 computation (+1024 μs). Voter masks Node 3 outlier, continuing mission smoothly on Nodes 1 & 2.",
+        compute: (raw) => {
+          const delta = Math.floor((raw * 3) / 10);
+          const base = 1500 + delta;
+          return { y1: base, y2: base, y3: Math.min(2000, base ^ (1 << 10)), timeout: false };
+        }
+      },
+      disagree: {
+        name: "Total Disagreement",
+        desc: "Multi-channel radiation corruption causes all nodes to disagree by > 5 μs. Predefined Fail-Safe (-9999 μs) is commanded.",
+        compute: (raw) => {
+          const delta = Math.floor((raw * 3) / 10);
+          const base = 1500 + delta;
+          return { y1: base + 120, y2: base - 80, y3: base + 260, timeout: false };
+        }
+      },
+      hang: {
+        name: "Core 2 Hardware Hang",
+        desc: "Core 2 enters infinite loop (simulating hardware lockup). Arbiter watchdog timer expires (Timeout Mask: 0x04) triggering Fail-Safe.",
+        compute: (raw) => {
+          const delta = Math.floor((raw * 3) / 10);
+          const base = 1500 + delta;
+          return { y1: base, y2: 1500, y3: base, timeout: true };
+        }
+      }
+    };
+
+    function setScenario(scen) {
+      currentScenario = scen;
+      document.querySelectorAll('.scenario-btn').forEach(btn => {
+        btn.classList.remove('bg-emerald-950/40', 'border-emerald-600/60', 'text-emerald-300');
+        btn.classList.add('bg-[var(--background,#0f172a)]', 'border-[var(--border,#334155)]', 'text-[var(--foreground,#f8fafc)]');
+      });
+      const activeBtn = document.getElementById('btn-' + scen);
+      if (activeBtn) {
+        activeBtn.classList.remove('bg-[var(--background,#0f172a)]', 'border-[var(--border,#334155)]', 'text-[var(--foreground,#f8fafc)]');
+        activeBtn.classList.add('bg-emerald-950/40', 'border-emerald-600/60', 'text-emerald-300');
+      }
+
+      document.getElementById('scenario-desc').innerHTML = `<strong>${scenarios[scen].name}:</strong> ${scenarios[scen].desc}`;
+      updateSimulation();
+    }
+
+    function updateSimulation() {
+      const scen = scenarios[currentScenario];
+      const res = scen.compute(sensorValue);
+
+      const y1 = res.y1;
+      const y2 = res.y2;
+      const y3 = res.y3;
+
+      document.getElementById('val-node1').innerHTML = `${y1} <span class="text-xs font-normal text-slate-400">μs</span>`;
+      document.getElementById('val-node2').innerHTML = `${y2} <span class="text-xs font-normal text-slate-400">μs</span>`;
+      document.getElementById('val-node3').innerHTML = `${y3} <span class="text-xs font-normal text-slate-400">μs</span>`;
+
+      // Calculate deltas
+      const d12 = Math.abs(y1 - y2);
+      const d23 = Math.abs(y2 - y3);
+      const d13 = Math.abs(y1 - y3);
+
+      document.getElementById('delta-val-12').textContent = `${d12} μs`;
+      document.getElementById('delta-val-23').textContent = `${d23} μs`;
+      document.getElementById('delta-val-13').textContent = `${d13} μs`;
+
+      const p12 = d12 <= 5;
+      const p23 = d23 <= 5;
+      const p13 = d13 <= 5;
+
+      updateDeltaTag('12', p12, d12);
+      updateDeltaTag('23', p23, d23);
+      updateDeltaTag('13', p13, d13);
+
+      let statusStr = "";
+      let statusClass = "bg-emerald-500/20 text-emerald-400 border-emerald-500/40";
+      let finalPwm = 1500;
+      let failsafe = false;
+
+      resetNodeCards();
+
+      if (res.timeout) {
+        statusStr = "FAIL-SAFE ACTIVATED (Core Watchdog Timeout)";
+        statusClass = "bg-rose-500/20 text-rose-400 border-rose-500/40";
+        finalPwm = -9999;
+        failsafe = true;
+        setNodeCardAlert('card-node2', 'badge-node2', 'status-node2', 'TIMEOUT HANG', 'Watchdog Expired');
+      } else if (p12 && p23 && p13) {
+        statusStr = "UNANIMOUS (All Nodes Agree)";
+        finalPwm = Math.floor((y1 + y2 + y3) / 3);
+      } else if (p12 && !p23 && !p13) {
+        statusStr = "MAJORITY 2oo3 (Node 3 Outlier Masked)";
+        statusClass = "bg-amber-500/20 text-amber-400 border-amber-500/40";
+        finalPwm = Math.floor((y1 + y2) / 2);
+        setNodeCardAlert('card-node3', 'badge-node3', 'status-node3', 'OUTLIER MASKED', 'Bit-Flip SEU Filtered');
+      } else if (p13 && !p12 && !p23) {
+        statusStr = "MAJORITY 2oo3 (Node 2 Outlier Masked)";
+        statusClass = "bg-amber-500/20 text-amber-400 border-amber-500/40";
+        finalPwm = Math.floor((y1 + y3) / 2);
+        setNodeCardAlert('card-node2', 'badge-node2', 'status-node2', 'OUTLIER MASKED', 'Bit-Flip SEU Filtered');
+      } else if (p23 && !p12 && !p13) {
+        statusStr = "MAJORITY 2oo3 (Node 1 Outlier Masked)";
+        statusClass = "bg-amber-500/20 text-amber-400 border-amber-500/40";
+        finalPwm = Math.floor((y2 + y3) / 2);
+        setNodeCardAlert('card-node1', 'badge-node1', 'status-node1', 'OUTLIER MASKED', 'Bit-Flip SEU Filtered');
+      } else {
+        statusStr = "FAIL-SAFE ACTIVATED (Total Disagreement)";
+        statusClass = "bg-rose-500/20 text-rose-400 border-rose-500/40";
+        finalPwm = -9999;
+        failsafe = true;
+        setNodeCardAlert('card-node1', 'badge-node1', 'status-node1', 'CORRUPT', 'Disagreement');
+        setNodeCardAlert('card-node2', 'badge-node2', 'status-node2', 'CORRUPT', 'Disagreement');
+        setNodeCardAlert('card-node3', 'badge-node3', 'status-node3', 'CORRUPT', 'Disagreement');
+      }
+
+      // Update Voter Badge
+      const voterBadge = document.getElementById('voter-status-badge');
+      voterBadge.textContent = statusStr;
+      voterBadge.className = `px-3 py-1 rounded-full text-xs font-bold border ${statusClass}`;
+
+      // Update Commanded PWM Display
+      const pwmDisplay = document.getElementById('final-pwm-display');
+      const pwmBar = document.getElementById('pwm-bar');
+      const failsafeBanner = document.getElementById('failsafe-banner');
+
+      if (failsafe) {
+        pwmDisplay.textContent = "-9999 (SAFE)";
+        pwmDisplay.className = "font-mono text-2xl font-black text-rose-500";
+        pwmBar.style.width = "0%";
+        pwmBar.className = "h-full bg-rose-500 rounded-full transition-all duration-300";
+        failsafeBanner.classList.remove('hidden');
+      } else {
+        pwmDisplay.innerHTML = `${finalPwm} <span class="text-sm font-normal text-slate-400">μs</span>`;
+        pwmDisplay.className = "font-mono text-2xl font-black text-emerald-400";
+        const percent = Math.max(0, Math.min(100, ((finalPwm - 1000) / 1000) * 100));
+        pwmBar.style.width = `${percent}%`;
+        pwmBar.className = "h-full bg-emerald-500 rounded-full transition-all duration-300";
+        failsafeBanner.classList.add('hidden');
+      }
+
+      // Append to UART console
+      logToUart(sensorValue, y1, y2, y3, d12, d23, d13, statusStr, finalPwm);
+
+      // Record in history for canvas
+      historyData.push({
+        sensor: sensorValue,
+        pwm: failsafe ? 1500 : finalPwm,
+        failsafe: failsafe
+      });
+      if (historyData.length > maxHistory) historyData.shift();
+      drawTelemetryCanvas();
+    }
+
+    function updateDeltaTag(id, pass, diff) {
+      const box = document.getElementById(`delta-box-${id}`);
+      const val = document.getElementById(`delta-val-${id}`);
+      const tag = document.getElementById(`delta-tag-${id}`);
+
+      if (pass) {
+        box.className = "p-3 rounded-xl bg-slate-900 border border-emerald-800/60";
+        val.className = "text-lg font-mono font-bold text-emerald-400 my-0.5";
+        tag.className = "text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400";
+        tag.textContent = "PASS (≤5)";
+      } else {
+        box.className = "p-3 rounded-xl bg-slate-900 border border-rose-800/60";
+        val.className = "text-lg font-mono font-bold text-rose-400 my-0.5";
+        tag.className = "text-[9px] px-1.5 py-0.5 rounded bg-rose-950 text-rose-400";
+        tag.textContent = "FAIL (>5)";
+      }
+    }
+
+    function resetNodeCards() {
+      ['node1', 'node2', 'node3'].forEach(node => {
+        const card = document.getElementById(`card-${node}`);
+        const badge = document.getElementById(`badge-${node}`);
+        const status = document.getElementById(`status-${node}`);
+
+        card.className = "bg-[var(--card,#1e293b)] border border-[var(--border,#334155)] rounded-2xl p-4 shadow-md transition-all";
+        badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-700";
+        badge.textContent = "OK";
+        status.className = "text-[10px] text-emerald-400 mt-2 flex items-center gap-1";
+        status.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Valid Nominal`;
+      });
+    }
+
+    function setNodeCardAlert(cardId, badgeId, statusId, badgeText, statusText) {
+      const card = document.getElementById(cardId);
+      const badge = document.getElementById(badgeId);
+      const status = document.getElementById(statusId);
+
+      card.className = "bg-rose-950/20 border border-rose-600/60 rounded-2xl p-4 shadow-md transition-all";
+      badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-600";
+      badge.textContent = badgeText;
+      status.className = "text-[10px] text-rose-400 mt-2 flex items-center gap-1";
+      status.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> ${statusText}`;
+    }
+
+    let frameCount = 0;
+    function logToUart(sensor, y1, y2, y3, d12, d23, d13, status, pwm) {
+      frameCount++;
+      const consoleEl = document.getElementById('uart-console');
+      const timeStr = new Date().toLocaleTimeString();
+      const line = document.createElement('div');
+      line.className = "border-b border-slate-900 pb-1";
+      line.innerHTML = `<span class="text-slate-500">[${timeStr}]</span> [FRAME #${frameCount}] Pitch Rate: ${sensor.toString().padStart(4, ' ')} ddeg/s | Nodes: [N1:${y1} N2:${y2} N3:${y3}] | Status: <span class="${pwm === -9999 ? 'text-rose-400 font-bold' : 'text-emerald-300'}">${status}</span> | Commanded: <strong class="${pwm === -9999 ? 'text-rose-400 font-bold' : 'text-amber-300'}">${pwm} μs</strong>`;
+      consoleEl.appendChild(line);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function clearConsole() {
+      document.getElementById('uart-console').innerHTML = '';
+    }
+
+    function drawTelemetryCanvas() {
+      const canvas = document.getElementById('telemetryCanvas');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Draw Grid
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let y = 20; y < h; y += 30) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Baseline (1500us)
+      ctx.strokeStyle = '#334155';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, h / 2);
+      ctx.lineTo(w, h / 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      if (historyData.length < 2) return;
+
+      const step = w / (maxHistory - 1);
+
+      // Draw PWM Commanded Waveform (Emerald / Amber)
+      ctx.beginPath();
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 2.5;
+
+      historyData.forEach((pt, i) => {
+        const x = i * step;
+        // Map 1400..1600 to h..0
+        const y = h / 2 - ((pt.pwm - 1500) / 100) * (h / 2.8);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Draw Pitch Sensor Input Waveform (Indigo)
+      ctx.beginPath();
+      ctx.strokeStyle = '#818cf8';
+      ctx.lineWidth = 1.5;
+
+      historyData.forEach((pt, i) => {
+        const x = i * step;
+        const y = h / 2 - (pt.sensor / 100) * (h / 2.8);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Legend in top-right
+      ctx.fillStyle = '#818cf8';
+      ctx.font = '10px monospace';
+      ctx.fillText('Sensor Ingest (Pitch Rate)', w - 240, 15);
+      ctx.fillStyle = '#10b981';
+      ctx.fillText('Commanded Actuator PWM', w - 100, 15);
+    }
+
+    // Event Listeners
+    document.getElementById('sensor-slider').addEventListener('input', (e) => {
+      sensorValue = parseInt(e.target.value);
+      document.getElementById('sensor-val-display').textContent = `${sensorValue} ddeg/s`;
+      updateSimulation();
+    });
+
+    // Initialize
+    updateSimulation();
+  </script>
+</body>
+</html>
