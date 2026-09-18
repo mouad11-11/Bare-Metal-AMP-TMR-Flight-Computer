@@ -12,11 +12,11 @@ The system utilizes **Asymmetric Multiprocessing (AMP)** to assign deterministic
 
 ---
 
-## ⚡ Quickstart (Under 30 Seconds)
+## ⚡ Quickstart 
 
 Clone the repository and run the automated quickstart for your platform:
 
-### 🪟 Windows (Native)
+### 🪟 Windows 
 ```cmd
 quickstart.bat
 ```
