@@ -34,7 +34,7 @@ echo "[3/4] Running multi-core QEMU vexpress-a15 emulation..."
 OUTPUT_LOG="qemu_review_output.log"
 rm -f "$OUTPUT_LOG"
 
-qemu-system-arm -M vexpress-a15 -cpu cortex-a15 -smp 4 -m 128M -nographic \
+qemu-system-arm -M vexpress-a15 -cpu cortex-a15 -smp 4 -nographic \
     -kernel tmr_flight_computer.elf -accel tcg,thread=multi -serial file:"$OUTPUT_LOG" &
 QEMU_PID=$!
 

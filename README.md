@@ -131,7 +131,7 @@ cmake --build .
 
 ### Run Directly in QEMU:
 ```bash
-qemu-system-arm -M vexpress-a15 -cpu cortex-a15 -smp 4 -m 128M -nographic \
+qemu-system-arm -M vexpress-a15 -cpu cortex-a15 -smp 4 -nographic \
     -kernel tmr_flight_computer.elf -accel tcg,thread=multi
 ```
 *(To exit QEMU, press `Ctrl + A` then `X`)*
@@ -151,6 +151,7 @@ qemu-system-arm -M vexpress-a15 -cpu cortex-a15 -smp 4 -m 128M -nographic \
 │   ├── memory_map.h            # Physical memory addresses (Zones 1-3, System/Text, UART)
 │   ├── uart.h / uart.c         # ARM PL011 UART console telemetry driver at 0x1C090000
 │   └── types.h                 # Fixed-width types, DMB/DSB/ISB/SEV/WFE architectural barriers
+├── DOCUMENTATION.md            # In-depth architectural specification, theory, and bug solutions
 ├── linker.ld                   # Linker script defining 16MB System, 16KB stack, and Zone origins
 ├── live_monitor.py             # Native desktop Tkinter GUI monitor with real-time plots
 ├── quickstart.bat              # One-click review script for Windows

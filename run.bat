@@ -37,8 +37,8 @@ if not exist "tmr_flight_computer.elf" (
     )
 )
 
-echo [INFO] Starting QEMU with 4 ARM Cortex-A15 Cores, 128MB RAM, vexpress-a15...
+echo [INFO] Starting QEMU with 4 ARM Cortex-A15 Cores, vexpress-a15...
 echo [INFO] Press Ctrl+A then X to exit QEMU.
 echo ------------------------------------------------------------------------------
 
-"%QEMU_EXE%" -M vexpress-a15 -cpu cortex-a15 -smp 4 -m 128M -nographic -kernel tmr_flight_computer.elf -accel tcg,thread=multi
+"%QEMU_EXE%" -M vexpress-a15 -cpu cortex-a15 -smp 4 -nographic -kernel tmr_flight_computer.elf -accel tcg,thread=multi

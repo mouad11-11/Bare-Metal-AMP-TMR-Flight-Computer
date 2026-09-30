@@ -10,7 +10,7 @@ if (-not (Test-Path $qemu)) {
 $outputFile = "qemu_flight_test_log.txt"
 if (Test-Path $outputFile) { Remove-Item $outputFile -Force }
 
-$qemuArgs = "-M vexpress-a15 -cpu cortex-a15 -smp 4 -m 128M -nographic -kernel tmr_flight_computer.elf -accel tcg,thread=multi"
+$qemuArgs = "-M vexpress-a15 -cpu cortex-a15 -smp 4 -nographic -kernel tmr_flight_computer.elf -accel tcg,thread=multi"
 
 Write-Host "[INFO] Starting QEMU flight computer simulation..." -ForegroundColor Cyan
 $proc = Start-Process -FilePath $qemu -ArgumentList $qemuArgs -NoNewWindow -RedirectStandardOutput $outputFile -PassThru

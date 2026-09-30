@@ -172,7 +172,6 @@ class TmrFlightMonitorApp:
             "-M", "vexpress-a15",
             "-cpu", "cortex-a15",
             "-smp", "4",
-            "-m", "128M",
             "-nographic",
             "-kernel", "tmr_flight_computer.elf",
             "-accel", "tcg,thread=multi"

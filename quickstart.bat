@@ -27,7 +27,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 :: Step 3: Interactive Telemetry Monitor
 echo.
-echo [3/3] Telemetry & Monitoring:
+echo [3/3] Telemetry ^& Monitoring:
 echo   [1] Launch Live Desktop GUI Monitor (Tkinter)
 echo   [2] Exit
 echo.
