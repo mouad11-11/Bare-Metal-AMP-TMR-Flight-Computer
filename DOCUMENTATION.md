@@ -106,7 +106,12 @@ MEMORY {
 ### 2.3 Dynamic 4KB Stack Isolation
 A single shared stack pointer across multi-core processors causes fatal stack-smashing collisions. The reset vector in [`src/startup.S`](src/startup.S) implements dynamic stack offset computation:
 
-$$\text{SP}_{\text{core}} = \text{\_stack\_top} - (\text{core\_id} \times 4096)$$
+$$\text{SP}_i = \text{SP}_{\text{base}} - (i \times 4096) \quad \text{for } i \in \{0, 1, 2, 3\}$$
+
+Where:
+- $\text{SP}_i$: Dedicated stack pointer allocated to Core $i$
+- $\text{SP}_{\text{base}}$: Physical upper bound of stack RAM (`_stack_top` at `0x80024000`)
+- $i$: Linear physical core ID derived from `MPIDR` ($i = 0$ for Arbiter, $i \in \{1, 2, 3\}$ for Nodes 1–3)
 
 ```assembly
     /* Query Multiprocessor Affinity Register (MPIDR) */
@@ -146,7 +151,7 @@ Instead of mutexes, synchronization relies on ARM architectural instructions and
 ---
 
 ### 2.5 2-out-of-3 (2oo3) Bounded Majority Voter Law
-In digital computing, classic voters often use bitwise equality ($y_1 == y_2 == y_3$). However, in analog sensor processing, attitude estimation, and floating-point control:
+In digital computing, classic voters often use bitwise equality ($y_1 = y_2 = y_3$). However, in analog sensor processing, attitude estimation, and floating-point control:
 - Minor thermal variance, quantization round-off, and analog-to-digital converter (ADC) noise result in non-identical, but valid, numerical values (e.g., $1533\,\mu\text{s}$ vs. $1538\,\mu\text{s}$).
 - A strict bitwise equality voter would reject these valid readings and trigger unnecessary aborts.
 
@@ -172,8 +177,8 @@ For redundant node outputs $y_1, y_2, y_3$:
 
 4. **Total Disagreement (Fail-Safe Trigger)**:  
    If no two cores agree within $\Delta \le 5\,\mu\text{s}$ (e.g., multiple correlated faults or catastrophic sensor breakdown):
-   $$u_{\text{actuator}} = -9999\,\mu\text{s} \quad (\text{FAIL\_SAFE\_PWM})$$
-   Actuator drives are instantly commanded to neutral/safe standby to prevent aerodynamic structural over-stress.
+   $$u_{\text{actuator}} = -9999\,\mu\text{s} \quad (\text{Fail-Safe State})$$
+   Actuator drives are instantly commanded to neutral/safe standby (`FAIL_SAFE_PWM` = `-9999 µs`) to prevent aerodynamic structural over-stress.
 
 ---
 
@@ -263,7 +268,7 @@ During the implementation and hardening of this bare-metal multi-core flight com
       return (diff < 0) ? -diff : diff;
   }
   ```
-  Even across the widest boundary conditions ($[INT32\_MIN, INT32\_MAX]$), the 64-bit arithmetic is mathematically guaranteed never to overflow.
+  Even across the widest boundary conditions (`[INT32_MIN, INT32_MAX]`), the 64-bit arithmetic is mathematically guaranteed never to overflow.
 
 ---
 
