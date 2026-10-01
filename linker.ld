@@ -35,11 +35,11 @@ SECTIONS
         _bss_end = .;
     } > RAM
 
-    /* 16KB total stack allocated: 4KB strictly isolated per core */
+    /* 32KB total stack: 8KB per core (6KB SVC, 2KB banked exception modes) */
     .stack (NOLOAD) : {
         . = ALIGN(8);
         _stack_bottom = .;
-        . += 0x4000; /* 16KB */
+        . += 0x8000; /* 32KB */
         _stack_top = .;
     } > RAM
 

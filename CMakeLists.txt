@@ -19,6 +19,7 @@ set(SRCS
     src/amp.c
     src/voter.c
     src/flight_control.c
+    src/failsafe.c
 )
 
 add_executable(tmr_flight_computer.elf ${SRCS})

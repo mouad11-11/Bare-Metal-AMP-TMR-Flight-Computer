@@ -204,21 +204,35 @@ class TmrFlightMonitorApp:
             y1, y2, y3 = int(m_nodes.group(1)), int(m_nodes.group(2)), int(m_nodes.group(3))
             self.last_y = (y1, y2, y3)
 
+        m_status = re.search(r'Voter Status\s*:\s*(.+)', line)
+        if m_status:
+            self.last_status = m_status.group(1).strip()
+
+        m_fs = re.search(r'\[FAILSAFE\].*?Reason:\s*(\w+)', line)
+        if m_fs:
+            self.last_fs_reason = m_fs.group(1).strip()
+
         m_pwm = re.search(r'Commanded PWM:\s*(-?\d+)', line)
         if m_pwm and hasattr(self, 'last_y'):
             pwm = int(m_pwm.group(1))
             y1, y2, y3 = self.last_y
-            self._update_bar_plot(y1, y2, y3, pwm)
+            status = getattr(self, 'last_status', 'OK')
+            reason = getattr(self, 'last_fs_reason', '')
+            self._update_bar_plot(y1, y2, y3, pwm, status, reason)
 
-    def _update_bar_plot(self, y1, y2, y3, pwm):
+    def _update_bar_plot(self, y1, y2, y3, pwm, status="OK", reason=""):
         self.ax_bar.clear()
         nodes = ['Node 1', 'Node 2', 'Node 3', '2oo3 Voter']
         pwms = [y1, y2, y3, pwm if pwm != -9999 else 850]
-        colors = ['#38bdf8', '#fbbf24', '#a78bfa', '#10b981' if pwm != -9999 else '#f43f5e']
+        is_safe = (pwm == -9999 or "FAIL-SAFE" in status)
+        colors = ['#38bdf8', '#fbbf24', '#a78bfa', '#f43f5e' if is_safe else '#10b981']
         self.ax_bar.bar(nodes, pwms, color=colors, width=0.5, edgecolor='#475569')
-        if pwm == -9999:
-            self.ax_bar.text(3, 900, "FAIL-SAFE\n-9999 μs", color='#f43f5e', fontweight='bold', ha='center', fontsize=7.5)
-        self.ax_bar.set_title(f"Live Frame Outputs (Commanded PWM: {pwm} μs)", color='#f8fafc', fontsize=9, pad=6)
+        if is_safe:
+            txt = f"FAIL-SAFE\n{reason}" if reason else "FAIL-SAFE\n-9999 μs"
+            self.ax_bar.text(3, 900, txt, color='#f43f5e', fontweight='bold', ha='center', fontsize=7)
+            self.ax_bar.set_title(f"Live Frame (Command: {pwm} μs | Status: FAILSAFE | Reason: {reason or 'LATCHED'})", color='#f87171', fontsize=9, pad=6)
+        else:
+            self.ax_bar.set_title(f"Live Frame Outputs (Commanded PWM: {pwm} μs | Status: {status})", color='#f8fafc', fontsize=9, pad=6)
         self.ax_bar.set_ylim(800, 2200)
         self.ax_bar.set_ylabel("Actuator PWM (μs)", color='#94a3b8', fontsize=8)
         self.ax_bar.tick_params(colors='#94a3b8', labelsize=8)

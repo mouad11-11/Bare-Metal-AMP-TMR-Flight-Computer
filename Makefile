@@ -46,6 +46,7 @@ else
 endif
 
 TEST_HOST_BIN := tests/host/test_voter.exe
+TEST_FS_BIN   := tests/host/test_failsafe.exe
 
 .PHONY: all clean dump run test-host
 
@@ -82,6 +83,12 @@ test-host:
 	$(TEST_HOST_BIN)
 	@echo [HOST-COVERAGE] voter.c
 	$(HOST_GCOV) -b -c tests/host/test_voter-voter.gcno
+	@echo [HOST-CC] tests/host/test_failsafe.c + src/failsafe.c
+	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/failsafe.c tests/host/test_failsafe.c -o $(TEST_FS_BIN)
+	@echo [HOST-RUN] $(TEST_FS_BIN)
+	$(TEST_FS_BIN)
+	@echo [HOST-COVERAGE] failsafe.c
+	$(HOST_GCOV) -b -c tests/host/test_failsafe-failsafe.gcno
 
 clean:
 	@if exist "$(BUILD_DIR)" rmdir /s /q "$(BUILD_DIR)"

@@ -70,12 +70,16 @@ echo [CC] src\flight_control.c
 arm-none-eabi-gcc %CFLAGS% -c src\flight_control.c -o build\flight_control.o
 if %ERRORLEVEL% NEQ 0 exit /b 1
 
+echo [CC] src\failsafe.c
+arm-none-eabi-gcc %CFLAGS% -c src\failsafe.c -o build\failsafe.o
+if %ERRORLEVEL% NEQ 0 exit /b 1
+
 echo [CC] src\main.c
 arm-none-eabi-gcc %CFLAGS% -c src\main.c -o build\main.o
 if %ERRORLEVEL% NEQ 0 exit /b 1
 
 echo [LD] tmr_flight_computer.elf
-arm-none-eabi-gcc %CFLAGS% -T linker.ld -nostdlib -Wl,--build-id=none -Wl,--no-warn-rwx-segments build\startup.o build\uart.o build\amp.o build\voter.o build\flight_control.o build\main.o -o tmr_flight_computer.elf
+arm-none-eabi-gcc %CFLAGS% -T linker.ld -nostdlib -Wl,--build-id=none -Wl,--no-warn-rwx-segments build\startup.o build\uart.o build\amp.o build\voter.o build\flight_control.o build\failsafe.o build\main.o -o tmr_flight_computer.elf
 if %ERRORLEVEL% NEQ 0 exit /b 1
 
 echo [OBJCOPY] tmr_flight_computer.bin
