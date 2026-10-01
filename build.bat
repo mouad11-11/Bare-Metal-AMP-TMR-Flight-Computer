@@ -98,12 +98,16 @@ echo [CC] src\lockstep.c
 arm-none-eabi-gcc %CFLAGS% -c src\lockstep.c -o build\lockstep.o
 if %ERRORLEVEL% NEQ 0 exit /b 1
 
+echo [CC] src\mailbox.c
+arm-none-eabi-gcc %CFLAGS% -c src\mailbox.c -o build\mailbox.o
+if %ERRORLEVEL% NEQ 0 exit /b 1
+
 echo [CC] src\main.c
 arm-none-eabi-gcc %CFLAGS% -c src\main.c -o build\main.o
 if %ERRORLEVEL% NEQ 0 exit /b 1
 
 echo [LD] tmr_flight_computer.elf
-arm-none-eabi-gcc %CFLAGS% -T linker.ld -nostdlib -Wl,--build-id=none -Wl,--no-warn-rwx-segments build\startup.o build\uart.o build\amp.o build\voter.o build\flight_control.o build\failsafe.o build\node_health.o build\supervision.o build\post.o build\stack_monitor.o build\mmu.o build\lockstep.o build\main.o -o tmr_flight_computer.elf
+arm-none-eabi-gcc %CFLAGS% -T linker.ld -nostdlib -Wl,--build-id=none -Wl,--no-warn-rwx-segments build\startup.o build\uart.o build\amp.o build\voter.o build\flight_control.o build\failsafe.o build\node_health.o build\supervision.o build\post.o build\stack_monitor.o build\mmu.o build\lockstep.o build\mailbox.o build\main.o -o tmr_flight_computer.elf
 if %ERRORLEVEL% NEQ 0 exit /b 1
 
 echo [OBJCOPY] tmr_flight_computer.bin

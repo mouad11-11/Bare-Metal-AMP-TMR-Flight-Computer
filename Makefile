@@ -53,6 +53,7 @@ TEST_POST_BIN  := tests/host/test_post.exe
 TEST_MATH_BIN  := tests/host/test_safe_math.exe
 TEST_MMU_BIN   := tests/host/test_mmu.exe
 TEST_LOCK_BIN  := tests/host/test_lockstep.exe
+TEST_MBOX_BIN  := tests/host/test_mailbox.exe
 
 .PHONY: all clean dump run test-host
 
@@ -135,6 +136,12 @@ test-host:
 	$(TEST_LOCK_BIN)
 	@echo [HOST-COVERAGE] lockstep.c
 	$(HOST_GCOV) -b -c tests/host/test_lockstep-lockstep.gcno
+	@echo [HOST-CC] tests/host/test_mailbox.c + src/mailbox.c
+	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/mailbox.c tests/host/test_mailbox.c -o $(TEST_MBOX_BIN)
+	@echo [HOST-RUN] $(TEST_MBOX_BIN)
+	$(TEST_MBOX_BIN)
+	@echo [HOST-COVERAGE] mailbox.c
+	$(HOST_GCOV) -b -c tests/host/test_mailbox-mailbox.gcno
 
 clean:
 	@if exist "$(BUILD_DIR)" rmdir /s /q "$(BUILD_DIR)"

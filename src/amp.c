@@ -6,6 +6,7 @@
 #include "failsafe.h"
 #include "stack_monitor.h"
 #include "supervision.h"
+#include "mailbox.h"
 
 void (* volatile secondary_spin_addr)(void) = NULL;
 volatile uint32_t core_done[4] = {0, 0, 0, 0};
@@ -82,14 +83,19 @@ void secondary_core_entry(void) {
     /* Checkpoint 1: Ingest sensor input */
     supervision_checkpoint(core_id, CFI_TOKEN_READ_INPUT);
     int32_t sensor_in = zone_read_input(core_id);
+    int32_t mbox_in = 0;
+    if (mailbox_read_input(core_id, g_cycle_counter, &mbox_in) == MAILBOX_OK) {
+        sensor_in = mbox_in;
+    }
 
     /* Checkpoint 2: Compute flight control algorithm */
     supervision_checkpoint(core_id, CFI_TOKEN_COMPUTE);
     int32_t pwm_out = flight_control_compute(core_id, sensor_in);
 
-    /* Checkpoint 3: Write spatial output zone */
+    /* Checkpoint 3: Write spatial output zone and double-buffered mailbox */
     supervision_checkpoint(core_id, CFI_TOKEN_WRITE_OUTPUT);
     zone_write_output(core_id, pwm_out);
+    mailbox_send_output(core_id, g_cycle_counter, pwm_out);
 
     /* Checkpoint 4: Stack canary boundary verification */
     supervision_checkpoint(core_id, CFI_TOKEN_CANARY_CHECK);

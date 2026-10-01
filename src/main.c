@@ -12,6 +12,7 @@
 #include "post.h"
 #include "mmu.h"
 #include "lockstep.h"
+#include "mailbox.h"
 
 static void print_banner(void) {
     uart_puts("\n");
@@ -47,6 +48,10 @@ static voter_result_t execute_flight_frame(int32_t raw_sensor_reading, fault_inj
     zone_write_input(1, raw_sensor_reading);
     zone_write_input(2, raw_sensor_reading);
     zone_write_input(3, raw_sensor_reading);
+
+    mailbox_send_input(1, g_cycle_counter + 1, raw_sensor_reading);
+    mailbox_send_input(2, g_cycle_counter + 1, raw_sensor_reading);
+    mailbox_send_input(3, g_cycle_counter + 1, raw_sensor_reading);
 
     uint32_t timed_out_mask = 0;
     bool dispatch_ok = amp_dispatch_and_wait(&timed_out_mask);
@@ -136,6 +141,7 @@ int main(void) {
     supervision_init();
     mmu_init_tables();
     lockstep_init();
+    mailbox_init();
     voter_reset_rate_limit(PWM_NEUTRAL_US);
     print_banner();
     print_system_info();
