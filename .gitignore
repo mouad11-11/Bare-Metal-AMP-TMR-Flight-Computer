@@ -9,6 +9,7 @@ build/
 # Temporary logs and test runs
 *.log
 *output.txt
+!docs/baseline_output.txt
 qemu_*.txt
 *.tmp
 
