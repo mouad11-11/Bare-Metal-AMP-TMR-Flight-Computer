@@ -50,6 +50,7 @@ TEST_FS_BIN    := tests/host/test_failsafe.exe
 TEST_STACK_BIN := tests/host/test_stack_monitor.exe
 TEST_SUP_BIN   := tests/host/test_supervision.exe
 TEST_POST_BIN  := tests/host/test_post.exe
+TEST_MATH_BIN  := tests/host/test_safe_math.exe
 
 .PHONY: all clean dump run test-host
 
@@ -80,6 +81,8 @@ dump: $(TARGET_ELF)
 	$(OBJDUMP) -d $< > tmr_flight_computer.asm
 
 test-host:
+	@if exist "tests\host\*.gcda" del /f /q "tests\host\*.gcda"
+	@if exist "*.gcov" del /f /q "*.gcov"
 	@echo [HOST-CC] tests/host/test_voter.c + src/voter.c + src/node_health.c + src/failsafe.c
 	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/voter.c $(SRC_DIR)/node_health.c $(SRC_DIR)/failsafe.c tests/host/test_voter.c -o $(TEST_HOST_BIN)
 	@echo [HOST-RUN] $(TEST_HOST_BIN)
@@ -112,6 +115,12 @@ test-host:
 	$(TEST_POST_BIN)
 	@echo [HOST-COVERAGE] post.c
 	$(HOST_GCOV) -b -c tests/host/test_post-post.gcno
+	@echo [HOST-CC] tests/host/test_safe_math.c
+	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage tests/host/test_safe_math.c -o $(TEST_MATH_BIN)
+	@echo [HOST-RUN] $(TEST_MATH_BIN)
+	$(TEST_MATH_BIN)
+	@echo [HOST-COVERAGE] safe_math.h
+	$(HOST_GCOV) -b -c tests/host/test_safe_math.gcno
 
 clean:
 	@if exist "$(BUILD_DIR)" rmdir /s /q "$(BUILD_DIR)"

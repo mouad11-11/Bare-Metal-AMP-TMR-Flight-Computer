@@ -1,18 +1,12 @@
 #include "voter.h"
 #include "node_health.h"
 #include "failsafe.h"
+#include "safe_math.h"
 
 static int32_t s_last_commanded_pwm = PWM_NEUTRAL_US;
 
 static inline int32_t safe_diff(int32_t a, int32_t b) {
-    int64_t diff = (int64_t)a - (int64_t)b;
-    if (diff < 0) {
-        diff = -diff;
-    }
-    if (diff > 0x7FFFFFFF) {
-        return 0x7FFFFFFF;
-    }
-    return (int32_t)diff;
+    return safe_diff_i32(a, b);
 }
 
 int32_t median3(int32_t a, int32_t b, int32_t c) {
