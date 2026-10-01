@@ -59,10 +59,30 @@ TEST_DIV_BIN   := tests/host/test_diversity.exe
 
 .PHONY: all clean dump run test-host test-fi
 
+ifeq ($(OS),Windows_NT)
+    MKDIR_BUILD    := @if not exist "$(BUILD_DIR)" mkdir "$(BUILD_DIR)"
+    CLEAN_COVERAGE := @if exist "tests\host\*.gcda" del /f /q "tests\host\*.gcda" & if exist "*.gcov" del /f /q "*.gcov"
+    define CLEAN_ALL
+	@if exist "$(BUILD_DIR)" rmdir /s /q "$(BUILD_DIR)"
+	@if exist "$(TARGET_ELF)" del /f /q "$(TARGET_ELF)"
+	@if exist "$(TARGET_BIN)" del /f /q "$(TARGET_BIN)"
+	@if exist "tmr_flight_computer.asm" del /f /q "tmr_flight_computer.asm"
+	@if exist "tests\host\*.exe" del /f /q "tests\host\*.exe"
+	@if exist "tests\host\*.gc*" del /f /q "tests\host\*.gc*"
+	@if exist "*.gcov" del /f /q "*.gcov"
+    endef
+else
+    MKDIR_BUILD    := mkdir -p $(BUILD_DIR)
+    CLEAN_COVERAGE := rm -f tests/host/*.gcda *.gcov
+    define CLEAN_ALL
+	rm -rf $(BUILD_DIR) $(TARGET_ELF) $(TARGET_BIN) tmr_flight_computer.asm tests/host/*.exe tests/host/test_* tests/host/*.gc* *.gcov
+    endef
+endif
+
 all: $(TARGET_ELF) $(TARGET_BIN)
 
 $(BUILD_DIR):
-	@if not exist "$(BUILD_DIR)" mkdir "$(BUILD_DIR)"
+	$(MKDIR_BUILD)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.S | $(BUILD_DIR)
 	@echo [AS] $<
@@ -86,8 +106,7 @@ dump: $(TARGET_ELF)
 	$(OBJDUMP) -d $< > tmr_flight_computer.asm
 
 test-host:
-	@if exist "tests\host\*.gcda" del /f /q "tests\host\*.gcda"
-	@if exist "*.gcov" del /f /q "*.gcov"
+	$(CLEAN_COVERAGE)
 	@echo [HOST-CC] tests/host/test_voter.c + src/voter.c + src/node_health.c + src/failsafe.c
 	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/voter.c $(SRC_DIR)/node_health.c $(SRC_DIR)/failsafe.c tests/host/test_voter.c -o $(TEST_HOST_BIN)
 	@echo [HOST-RUN] $(TEST_HOST_BIN)
@@ -162,11 +181,6 @@ test-fi: $(TARGET_ELF)
 	python tests/fi/run_fault_campaign.py
 
 clean:
-	@if exist "$(BUILD_DIR)" rmdir /s /q "$(BUILD_DIR)"
-	@if exist "$(TARGET_ELF)" del /f /q "$(TARGET_ELF)"
-	@if exist "$(TARGET_BIN)" del /f /q "$(TARGET_BIN)"
-	@if exist "tmr_flight_computer.asm" del /f /q "tmr_flight_computer.asm"
-	@if exist "tests\host\*.exe" del /f /q "tests\host\*.exe"
-	@if exist "tests\host\*.gc*" del /f /q "tests\host\*.gc*"
-	@if exist "*.gcov" del /f /q "*.gcov"
+	$(CLEAN_ALL)
 	@echo Cleaned build artifacts.
+

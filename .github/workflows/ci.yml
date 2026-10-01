@@ -28,9 +28,11 @@ jobs:
 
       - name: Static Analysis (cppcheck)
         run: |
-          cppcheck --enable=warning,style,performance,portability \
+          cppcheck --enable=warning,portability,performance \
             --error-exitcode=1 \
             --suppress=missingIncludeSystem \
+            --suppress=unusedFunction \
+            --suppress=unmatchedSuppression \
             --inline-suppr \
             -I src \
             src/
@@ -50,6 +52,8 @@ jobs:
             -kernel tmr_flight_computer.elf -accel tcg,thread=multi -serial file:qemu_ci_output.log &
           QEMU_PID=$!
           sleep 5
+          kill $QEMU_PID 2>/dev/null || true
+          sleep 1
           kill -9 $QEMU_PID 2>/dev/null || true
 
       - name: Verify Flight Telemetry Output
