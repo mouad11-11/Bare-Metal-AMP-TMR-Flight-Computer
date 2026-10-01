@@ -157,6 +157,8 @@ A desktop GUI monitor connects to the bare-metal output, displaying real-time UA
 python live_monitor.py
 ```
 
+> **Dependencies**: `pip install matplotlib numpy` (Tkinter is included with standard Python on most platforms; on Debian/Ubuntu, `sudo apt-get install python3-tk`).
+
 * **Live Telemetry Stream:** Reads raw serial telemetry directly from the PL011 UART (`0x1C090000`).
 * **Dynamic Voter Graph:** Compares outputs from Node 1 (Core 1), Node 2 (Core 2), and Node 3 (Core 3) against the 2oo3 consensus command in real time.
 * **Core Status Indicators:** Displays online status, latch-out states, and watchdog health across Cores 0 through 3.
@@ -262,7 +264,7 @@ The verification pipeline comprises host unit tests, an automated fault-injectio
 ├── linker.ld                   # Linker script defining System partition, 32KB stacks, and Zone origins
 ├── Makefile / CMakeLists.txt   # Dual synchronized build systems
 ├── quickstart.bat / .sh        # Turnkey launchers for Windows and Linux/WSL
-└── live_monitor.py             # Desktop Tkinter GUI telemetry monitor with animated voter plots
+└── live_monitor.py             # Desktop GUI telemetry monitor (requires Tkinter, Matplotlib, NumPy)
 ```
 
 ---

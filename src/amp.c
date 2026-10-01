@@ -142,7 +142,7 @@ bool amp_dispatch_and_wait(uint32_t *timed_out_mask) {
 
     /*
      * Core 0 spin-locks while polling volatile core_done array.
-     * Guarded by a hardware watchdog cycle timeout.
+     * Guarded by a software watchdog cycle timeout.
      */
     uint32_t timeout = WATCHDOG_MAX_CYCLES;
     while ((!core_done[1] || !core_done[2] || !core_done[3]) && --timeout > 0) {

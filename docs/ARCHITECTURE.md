@@ -110,7 +110,7 @@ The system constructs 4 translation tables (16KB each, aligned to 16KB boundarie
   - `MMU_ATTR_NORMAL_RW` (`0x00000C1E`): Execute-Never (`XN = 1`) data partitions.
   - `MMU_DESC_FAULT` (`0x00000000`): Unmapped entries that generate a translation fault upon access.
 
-In the bare-metal demonstrator, spatial isolation is enforced via physical address mapping and software permission checks (`mmu_check_permission()`), while hardware MMU translation activation (`mmu_enable_core()`) is validated in unit test harnesses.
+In the bare-metal demonstrator, spatial isolation is established by linker-defined address conventions and software permission auditing (`mmu_check_permission()`). Hardware MMU translation tables are constructed in RAM (`mmu_init_tables()`) and fully verified in host unit tests, but hardware MMU enforcement is **not activated** in the default bare-metal QEMU build — cores can technically access any physical address. True hardware-enforced isolation requires enabling `mmu_enable_core()` at boot, which is validated in the test harnesses but left disabled in the default configuration to simplify the demonstrator.
 
 ---
 

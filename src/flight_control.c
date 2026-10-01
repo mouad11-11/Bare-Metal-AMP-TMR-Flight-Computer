@@ -55,14 +55,18 @@ int32_t flight_control_compute(uint32_t core_id, int32_t sensor_input) {
     
     /* Apply Fault Injection based on simulated Single Event Upsets (SEUs) */
     if (g_fault_mode == FAULT_SEU_NODE1 && core_id == 1) {
-        /* Simulate cosmic ray SEU bit-flip in Node 1 register */
-        pwm ^= (1 << 9); /* Flip bit 9 (+/- 512 us deviation) */
+        /* Simulate cosmic ray SEU bit-flip in Node 1 register.
+         * XOR toggles bit 9: sign of deviation depends on whether bit was
+         * already set. Output is subsequently clamped to [1000, 2000]. */
+        pwm ^= (1 << 9);
     } else if (g_fault_mode == FAULT_SEU_NODE2 && core_id == 2) {
-        /* Simulate SEU bit-flip in Node 2 arithmetic logic */
-        pwm ^= (1 << 8); /* Flip bit 8 (+/- 256 us deviation) */
+        /* Simulate SEU bit-flip in Node 2 arithmetic logic.
+         * XOR toggles bit 8: effective deviation is +/-256 us before clamp. */
+        pwm ^= (1 << 8);
     } else if (g_fault_mode == FAULT_SEU_NODE3 && core_id == 3) {
-        /* Simulate SEU bit-flip in Node 3 state output */
-        pwm ^= (1 << 10); /* Flip bit 10 (+/- 1024 us deviation) */
+        /* Simulate SEU bit-flip in Node 3 state output.
+         * XOR toggles bit 10: effective deviation is +/-1024 us before clamp. */
+        pwm ^= (1 << 10);
     } else if (g_fault_mode == FAULT_BOUNDED_NOISE) {
         /* Bounded state estimator / sensor noise: all within delta <= 5 */
         if (core_id == 1) pwm = safe_add_i32(pwm, 2);
