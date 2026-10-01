@@ -51,6 +51,7 @@ TEST_STACK_BIN := tests/host/test_stack_monitor.exe
 TEST_SUP_BIN   := tests/host/test_supervision.exe
 TEST_POST_BIN  := tests/host/test_post.exe
 TEST_MATH_BIN  := tests/host/test_safe_math.exe
+TEST_MMU_BIN   := tests/host/test_mmu.exe
 
 .PHONY: all clean dump run test-host
 
@@ -121,6 +122,12 @@ test-host:
 	$(TEST_MATH_BIN)
 	@echo [HOST-COVERAGE] safe_math.h
 	$(HOST_GCOV) -b -c tests/host/test_safe_math.gcno
+	@echo [HOST-CC] tests/host/test_mmu.c + src/mmu.c
+	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/mmu.c tests/host/test_mmu.c -o $(TEST_MMU_BIN)
+	@echo [HOST-RUN] $(TEST_MMU_BIN)
+	$(TEST_MMU_BIN)
+	@echo [HOST-COVERAGE] mmu.c
+	$(HOST_GCOV) -b -c tests/host/test_mmu-mmu.gcno
 
 clean:
 	@if exist "$(BUILD_DIR)" rmdir /s /q "$(BUILD_DIR)"

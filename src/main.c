@@ -10,6 +10,7 @@
 #include "node_health.h"
 #include "supervision.h"
 #include "post.h"
+#include "mmu.h"
 
 static void print_banner(void) {
     uart_puts("\n");
@@ -127,6 +128,7 @@ int main(void) {
     failsafe_init();
     node_health_init();
     supervision_init();
+    mmu_init_tables();
     voter_reset_rate_limit(PWM_NEUTRAL_US);
     print_banner();
     print_system_info();

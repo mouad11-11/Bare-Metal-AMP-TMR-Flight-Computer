@@ -24,6 +24,7 @@ set(SRCS
     src/supervision.c
     src/post.c
     src/stack_monitor.c
+    src/mmu.c
 )
 
 add_executable(tmr_flight_computer.elf ${SRCS})
