@@ -55,7 +55,7 @@ TEST_MMU_BIN   := tests/host/test_mmu.exe
 TEST_LOCK_BIN  := tests/host/test_lockstep.exe
 TEST_MBOX_BIN  := tests/host/test_mailbox.exe
 
-.PHONY: all clean dump run test-host
+.PHONY: all clean dump run test-host test-fi
 
 all: $(TARGET_ELF) $(TARGET_BIN)
 
@@ -142,6 +142,10 @@ test-host:
 	$(TEST_MBOX_BIN)
 	@echo [HOST-COVERAGE] mailbox.c
 	$(HOST_GCOV) -b -c tests/host/test_mailbox-mailbox.gcno
+
+test-fi: $(TARGET_ELF)
+	@echo [FI-CAMPAIGN] Executing automated fault-injection campaign...
+	python tests/fi/run_fault_campaign.py
 
 clean:
 	@if exist "$(BUILD_DIR)" rmdir /s /q "$(BUILD_DIR)"
