@@ -138,7 +138,7 @@ Inter-processor communication uses a double-buffered shared memory mailbox proto
         │                                                         ├─ 7. dmb; dsb; sev
         │                                                         └─ Return to WFE holding loop
         │
-  Poll core_done[1..3] with software watchdog timeout (2,000,000 cycles)
+  Poll core_done[1..3] with software watchdog timeout (500,000 cycles)
         │
   Validate completion flags & CFI tokens
         │
@@ -200,4 +200,4 @@ Each node maintains a persistent health tracking record:
 - **Leaky Recovery**: A healthy node must complete $M = 100$ consecutive healthy frames to decay its fault counter by 1.
 
 ### 7.3 Software Watchdog Countdown
-Core 0's dispatch loop spin-waits on `core_done[1..3]` with a bounded counter (`WATCHDOG_MAX_CYCLES = 2000000`). If a secondary core hangs (e.g., infinite loop), the countdown expires, the faulted core's bitmask is recorded (`timed_out_mask`), its output is marked invalid, and the voter transitions to degraded 2oo2 quorum if the surviving nodes agree. If multiple cores fail or surviving nodes disagree, the system safely activates fail-safe command.
+Core 0's dispatch loop spin-waits on `core_done[1..3]` with a bounded counter (`WATCHDOG_MAX_CYCLES = 500000`). If a secondary core hangs (e.g., infinite loop), the countdown expires, the faulted core's bitmask is recorded (`timed_out_mask`), its output is marked invalid, and the voter transitions to degraded 2oo2 quorum if the surviving nodes agree. If multiple cores fail or surviving nodes disagree, the system safely activates fail-safe command.

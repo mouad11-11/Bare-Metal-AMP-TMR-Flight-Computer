@@ -180,7 +180,7 @@ This project is an **architectural and algorithmic software demonstrator** devel
 
 ### Covered Threats & Software Mitigations
 - **Single-Bit Transient Errors (SEUs)**: Arithmetic bit-flips in compute node outputs or mailbox buffers are masked by the 2oo3 median voter.
-- **Node Execution Timeouts**: Detected by Core 0's software cycle-countdown watchdog (2,000,000 cycle timeout) and handled via degraded 2oo2 quorum or node isolation.
+- **Node Execution Timeouts**: Detected by Core 0's software cycle-countdown watchdog (500,000 cycle timeout) and handled via degraded 2oo2 quorum or node isolation.
 - **Control-Flow Corruption**: Secondary cores report monotonic CFI checkpoints (`INIT` → `READ_INPUT` → `COMPUTE` → `WRITE_OUTPUT` → `CANARY_CHECK` → `COMPLETE`). Non-monotonic transitions trigger supervisory faults.
 - **Stack Boundary Breaches**: Monitored by 4-word `0xDEADBEEF` canaries audited before and after each frame dispatch.
 - **Corrupted Inter-Core Payloads**: Double-buffered mailbox structures validate IEEE 802.3 CRC32 checksums and sequential frame tokens before data ingest.

@@ -51,13 +51,19 @@ jobs:
           qemu-system-arm -M vexpress-a15 -cpu cortex-a15 -smp 4 -nographic \
             -kernel tmr_flight_computer.elf -accel tcg,thread=multi -serial file:qemu_ci_output.log &
           QEMU_PID=$!
-          sleep 5
+          for i in $(seq 1 30); do
+            if [ -f qemu_ci_output.log ] && grep -q "All spatial memory zones intact." qemu_ci_output.log; then
+              break
+            fi
+            sleep 0.5
+          done
           kill $QEMU_PID 2>/dev/null || true
           sleep 1
           kill -9 $QEMU_PID 2>/dev/null || true
 
       - name: Verify Flight Telemetry Output
         run: |
+          cat qemu_ci_output.log
           python3 tests/check_uart_output.py qemu_ci_output.log
 
       - name: Upload Build & Verification Artifacts
