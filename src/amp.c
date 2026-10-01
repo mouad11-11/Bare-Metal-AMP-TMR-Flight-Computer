@@ -9,8 +9,8 @@
 #include "mailbox.h"
 
 void (* volatile secondary_spin_addr)(void) = NULL;
-volatile uint32_t core_done[4] = {0, 0, 0, 0};
-volatile uint32_t core_ready[4] = {0, 0, 0, 0};
+volatile core_flag_t core_done[4] = { {0, {0}}, {0, {0}}, {0, {0}}, {0, {0}} };
+volatile core_flag_t core_ready[4] = { {0, {0}}, {0, {0}}, {0, {0}}, {0, {0}} };
 static volatile uint32_t core_cycle[4] = {0, 0, 0, 0};
 volatile uint32_t g_cycle_counter = 0;
 
@@ -66,7 +66,7 @@ void amp_release_qemu_secondary_cores(void) {
 void secondary_core_boot_notify(void) {
     uint32_t core_id = get_core_id();
     if (core_id >= 1 && core_id <= 3) {
-        core_ready[core_id] = 1;
+        core_ready[core_id].value = 1;
         dmb();
         sev();
     }
@@ -108,7 +108,7 @@ void secondary_core_entry(void) {
 
     /* Flag completion */
     dmb();
-    core_done[core_id] = 1;
+    core_done[core_id].value = 1;
     dmb();
     dsb();
     sev();
@@ -126,9 +126,9 @@ bool amp_dispatch_and_wait(uint32_t *timed_out_mask) {
     /* Prime supervision subsystem and CFI signatures for new frame cycle */
     supervision_frame_start(g_cycle_counter + 1);
 
-    core_done[1] = 0;
-    core_done[2] = 0;
-    core_done[3] = 0;
+    core_done[1].value = 0;
+    core_done[2].value = 0;
+    core_done[3].value = 0;
     dmb();
 
     /* Publish entry point to mailbox and increment cycle token */
@@ -145,7 +145,7 @@ bool amp_dispatch_and_wait(uint32_t *timed_out_mask) {
      * Guarded by a software watchdog cycle timeout.
      */
     uint32_t timeout = WATCHDOG_MAX_CYCLES;
-    while ((!core_done[1] || !core_done[2] || !core_done[3]) && --timeout > 0) {
+    while ((!core_done[1].value || !core_done[2].value || !core_done[3].value) && --timeout > 0) {
         yield_cpu();
     }
     dmb();
@@ -158,9 +158,9 @@ bool amp_dispatch_and_wait(uint32_t *timed_out_mask) {
 
     /* Evaluate deadlines, completion flags, and CFI signatures across nodes */
     uint32_t done_mask = 0;
-    if (core_done[1]) done_mask |= (1 << 1);
-    if (core_done[2]) done_mask |= (1 << 2);
-    if (core_done[3]) done_mask |= (1 << 3);
+    if (core_done[1].value) done_mask |= (1 << 1);
+    if (core_done[2].value) done_mask |= (1 << 2);
+    if (core_done[3].value) done_mask |= (1 << 3);
 
     uint32_t fault_mask = 0;
     bool eval_ok = supervision_evaluate_nodes(done_mask, &fault_mask);

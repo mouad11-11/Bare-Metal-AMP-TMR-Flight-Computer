@@ -138,8 +138,8 @@ void handle_core_exception(const fault_record_t *rec) {
 
     if (cid != 0) {
         /* Node core (1..3): Fail-silent according to Tree 4 */
-        core_ready[cid] = 0;
-        core_done[cid] = 0;
+        core_ready[cid].value = 0;
+        core_done[cid].value = 0;
         dmb();
         uart_printf("[FAULT] Node %u isolated and parked in fail-silent WFE loop.\n", cid);
         while (1) {

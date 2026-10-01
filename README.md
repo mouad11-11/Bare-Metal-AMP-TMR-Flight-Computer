@@ -138,7 +138,7 @@ When the ARM binary executes in QEMU, Core 0 runs POST, synchronizes secondary c
 | **POST** | Pre-Flight Diagnostics | Registers, March C- RAM, CRC32, voter | N/A | ALL PASS | System Healthy |
 | **Sync** | Secondary Core Wake | Holding pen wake & GIC SGI release | N/A | NODES 1..3 ONLINE | Ready |
 | **Frame 1** | Nominal Synchronous | Level attitude sensor reading (`0 ddeg/s`) | `0, 0, 0` | UNANIMOUS | `1500 us` (PASS) |
-| **Frame 2** | Bounded Estimator Noise| Sensor variance within $|Δ| \le 5\ \mu\text{s}$ | `5, 4, 1` | UNANIMOUS (Median) | `1536 us` (PASS) |
+| **Frame 2** | Bounded Estimator Noise| Sensor variance within $\lvert\Delta\rvert \le 5\ \mu\text{s}$ | `5, 4, 1` | UNANIMOUS (Median) | `1536 us` (PASS) |
 | **Frame 3** | Node 1 Bit-Flip | Synthetic single-bit flip on Node 1 | `485, 0, 485` | NODE 1 MASKED | `1515 us` (PASS) |
 | **Frame 4** | Node 2 Bit-Flip | Synthetic single-bit flip on Node 2 | `256, 256, 0` | NODE 2 MASKED | `1476 us` (PASS) |
 | **Frame 5** | Node 3 Bit-Flip | Synthetic single-bit flip on Node 3 | `0, 545, 545` | NODE 3 MASKED | `1545 us` (PASS) |

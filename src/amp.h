@@ -6,11 +6,11 @@
 /* Mailbox function pointer monitored by secondary cores */
 extern void (* volatile secondary_spin_addr)(void);
 
-/* Completion flags set by Cores 1, 2, and 3 */
-extern volatile uint32_t core_done[4];
+/* Completion flags set by Cores 1, 2, and 3 (cache-line padded) */
+extern volatile core_flag_t core_done[4];
 
-/* Boot / readiness flags set by Cores 1, 2, and 3 */
-extern volatile uint32_t core_ready[4];
+/* Boot / readiness flags set by Cores 1, 2, and 3 (cache-line padded) */
+extern volatile core_flag_t core_ready[4];
 
 /* Flight computer frame cycle token */
 extern volatile uint32_t g_cycle_counter;

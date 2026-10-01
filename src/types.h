@@ -29,6 +29,16 @@ typedef enum { false = 0, true = 1 } bool;
 #endif
 #endif
 
+/*
+ * Cache-line padded core synchronization flag (ARM Cortex-A15 64-byte L1/L2 cache line).
+ * Allocates 64 bytes per core flag to prevent false sharing and cache-line invalidation
+ * contention across physical cores during concurrent completion and readiness signaling.
+ */
+typedef struct {
+    volatile uint32_t value;
+    uint8_t _pad[60];
+} core_flag_t;
+
 /* ARMv7-A Architectural Barrier and Event Primitives */
 #if defined(__arm__) || defined(__thumb__)
 static inline void dmb(void) {

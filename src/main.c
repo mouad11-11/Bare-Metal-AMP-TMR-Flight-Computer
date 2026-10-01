@@ -181,17 +181,17 @@ int main(void) {
 
     /* Spin-wait for secondary cores to acknowledge readiness */
     uint32_t wait_cycles = 5000000;
-    while ((!core_ready[1] || !core_ready[2] || !core_ready[3]) && --wait_cycles > 0) {
+    while ((!core_ready[1].value || !core_ready[2].value || !core_ready[3].value) && --wait_cycles > 0) {
         __asm__ volatile("nop");
     }
 
     uart_printf("[SYNC] Core Readiness Status: Node 1=%s, Node 2=%s, Node 3=%s\n",
-                core_ready[1] ? "ONLINE" : "OFFLINE",
-                core_ready[2] ? "ONLINE" : "OFFLINE",
-                core_ready[3] ? "ONLINE" : "OFFLINE");
+                core_ready[1].value ? "ONLINE" : "OFFLINE",
+                core_ready[2].value ? "ONLINE" : "OFFLINE",
+                core_ready[3].value ? "ONLINE" : "OFFLINE");
 
     /* Verify all redundant compute nodes are operational before proceeding */
-    if (!core_ready[1] || !core_ready[2] || !core_ready[3]) {
+    if (!core_ready[1].value || !core_ready[2].value || !core_ready[3].value) {
         uart_puts("[FATAL] One or more secondary compute nodes failed to boot. Halting.\n");
         while (1) {
             wfe();

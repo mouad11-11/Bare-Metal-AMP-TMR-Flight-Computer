@@ -151,6 +151,11 @@ Each core pair communicates through a double-buffered mailbox struct:
 - **CRC32 Protection**: Every transaction includes an IEEE 802.3 CRC32 checksum computed over the payload. Corrupted frames are rejected (`MAILBOX_ERR_CRC`).
 - **Sequence Validation**: Incoming tokens must match the expected cycle counter. Stale frames are rejected (`MAILBOX_ERR_SEQUENCE`).
 
+### Cache-Line Alignment & False-Sharing Prevention
+In multicore ARM architectures with shared L2 caches (such as the quad-core Cortex-A15 cluster), adjacent variables written by different cores can induce severe **false sharing** if they share a single 64-byte cache line. To eliminate cache invalidation contention:
+- Synchronization flags (`core_done` and `core_ready`) use `core_flag_t`, which wraps each `volatile uint32_t` flag with a 60-byte padding buffer (`sizeof(core_flag_t) == 64` bytes).
+- Each physical core's flag occupies an independent 64-byte cache line, ensuring that when Cores 1, 2, and 3 update their completion status concurrently, no cache invalidation line bounces occur across cores.
+
 ---
 
 ## 6. Fault-Tolerant Voting Engine (`src/voter.c`)

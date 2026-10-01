@@ -8,8 +8,8 @@
 #include "failsafe.h"
 
 /* Host test stubs */
-volatile uint32_t core_ready[4] = {0, 0, 0, 0};
-volatile uint32_t core_done[4] = {0, 0, 0, 0};
+volatile core_flag_t core_ready[4] = { {0, {0}}, {0, {0}}, {0, {0}}, {0, {0}} };
+volatile core_flag_t core_done[4] = { {0, {0}}, {0, {0}}, {0, {0}}, {0, {0}} };
 volatile uint32_t g_cycle_counter = 0;
 void uart_printf(const char *fmt, ...) { (void)fmt; }
 void uart_puts(const char *str) { (void)str; }
