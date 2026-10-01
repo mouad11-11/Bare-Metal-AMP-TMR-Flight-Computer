@@ -33,7 +33,7 @@ static void print_system_info(void) {
     uart_printf("       Zone 1 Partition      : 0x%x (In: 0x%x, Out: 0x%x, Core 1)\n", ZONE1_BASE_ADDR, ZONE1_INPUT_ADDR, ZONE1_OUTPUT_ADDR);
     uart_printf("       Zone 2 Partition      : 0x%x (In: 0x%x, Out: 0x%x, Core 2)\n", ZONE2_BASE_ADDR, ZONE2_INPUT_ADDR, ZONE2_OUTPUT_ADDR);
     uart_printf("       Zone 3 Partition      : 0x%x (In: 0x%x, Out: 0x%x, Core 3)\n", ZONE3_BASE_ADDR, ZONE3_INPUT_ADDR, ZONE3_OUTPUT_ADDR);
-    uart_printf("       Stack Configuration   : 16KB total (4KB isolated per core)\n");
+    uart_printf("       Stack Configuration   : 32KB total (8KB isolated per core)\n");
     uart_printf("       Tolerance Bound       : delta <= %d microseconds\n", VOTER_TOLERANCE_BOUND);
     uart_printf("       Fail-Safe Command     : %d microseconds (Actuator Safe/Neutral)\n", FAIL_SAFE_VALUE);
     uart_puts("--------------------------------------------------------------------------------\n");

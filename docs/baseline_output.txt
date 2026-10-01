@@ -13,7 +13,7 @@
        Zone 1 Partition      : 0x81000000 (In: 0x81000000, Out: 0x81000004, Core 1)
        Zone 2 Partition      : 0x82000000 (In: 0x82000000, Out: 0x82000004, Core 2)
        Zone 3 Partition      : 0x83000000 (In: 0x83000000, Out: 0x83000004, Core 3)
-       Stack Configuration   : 16KB total (4KB isolated per core)
+       Stack Configuration   : 32KB total (8KB isolated per core)
        Tolerance Bound       : delta <= 5 microseconds
        Fail-Safe Command     : -9999 microseconds (Actuator Safe/Neutral)
 --------------------------------------------------------------------------------
