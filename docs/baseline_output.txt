@@ -1,95 +1,93 @@
-﻿[[[SYNSYSYNNC] SeCc]ondary Core Woke Up: ID= Secondary Core
- Woke Up:
- ID=======================================================C==]= ===S=1======3 (Rawec======== (===R==
-aw M P      BARE-METAL AMP TMR FLIGHT COMPUTE MPIDRR (ARM :Cortex-A15 Quadonda-rCorIeDR:)            
- 0 x        Software-Imp0lexmentedy Faul t CTolerance (oSIFT) Arcrhie Wotecturke Upe  8   8        0  
-0000===01========)==============
-==
-==================: ID==2 (R=aw MPID=R: 0x80================================
-0000003)
-[BOOT] Master Arbiter active on Core I000002D):
- 
-0 (Raw MPIDR: 0x80000000)
-[BOOT] Physical Memory Partitioning:
-       System/Text Partition : 0x80000000 - 0x80FFFFFF (Core 0 Arbiter)
-       Zone 1 Partition      : 0x81000000 (In: 0x81000000, Out: 0x81000004, Core 1)
-       Zone 2 Partition      : 0x82000000 (In: 0x82000000, Out: 0x82000004, Core 2)
-       Zone 3 Partition      : 0x83000000 (In: 0x83000000, Out: 0x83000004, Core 3)
-       Stack Configuration   : 16KB total (4KB isolated per core)
-       Tolerance Bound       : delta <= 5 microseconds
-       Fail-Safe Command     : -9999 microseconds (Actuator Safe/Neutral)
---------------------------------------------------------------------------------
-[SYNC] Releasing secondary cores (Cores 1, 2, 3) from QEMU holding pen...
-[SYNC] Core Readiness Status: Node 1=ONLINE, Node 2=ONLINE, Node 3=ONLINE
-
->>> STARTING AUTOMATED TMR FAULT TOLERANCE VERIFICATION SUITE <<<
-
-[FRAME #1] TEST 1: Nominal Flight Frame (Level Attitude)
-  Sensor Input : 0
-  Node Outputs : [Node 1: 1500 us] [Node 2: 1500 us] [Node 3: 1500 us]
-  Deltas       : |N1-N2|=0, |N2-N3|=0, |N1-N3|=0 (Bound <= 5)
-  Voter Status : UNANIMOUS (All Nodes Agree)
-  Commanded PWM: 1500 us
---------------------------------------------------------------------------------
-[FRAME #2] TEST 2: Bounded Estimator Noise (|delta| <= 5)
-  Sensor Input : 120
-  Node Outputs : [Node 1: 1538 us] [Node 2: 1533 us] [Node 3: 1537 us]
-  Deltas       : |N1-N2|=5, |N2-N3|=4, |N1-N3|=1 (Bound <= 5)
-  Voter Status : UNANIMOUS (All Nodes Agree)
-  Commanded PWM: 1536 us
---------------------------------------------------------------------------------
-[FRAME #3] TEST 3: SEU Bit-Flip on Node 1 (Core 1 Fault)
-  Sensor Input : 50
-  Node Outputs : [Node 1: 2000 us] [Node 2: 1515 us] [Node 3: 1515 us]
-  Deltas       : |N1-N2|=485, |N2-N3|=0, |N1-N3|=485 (Bound <= 5)
-  Voter Status : MAJORITY 2oo3 (Node 1 Outlier Masked)
-  Commanded PWM: 1515 us
---------------------------------------------------------------------------------
-[FRAME #4] TEST 4: SEU Bit-Flip on Node 2 (Core 2 Fault)
-  Sensor Input : -80
-  Node Outputs : [Node 1: 1476 us] [Node 2: 1220 us] [Node 3: 1476 us]
-  Deltas       : |N1-N2|=256, |N2-N3|=256, |N1-N3|=0 (Bound <= 5)
-  Voter Status : MAJORITY 2oo3 (Node 2 Outlier Masked)
-  Commanded PWM: 1476 us
---------------------------------------------------------------------------------
-[FRAME #5] TEST 5: SEU Bit-Flip on Node 3 (Core 3 Fault)
-  Sensor Input : 150
-  Node Outputs : [Node 1: 1545 us] [Node 2: 1545 us] [Node 3: 1000 us]
-  Deltas       : |N1-N2|=0, |N2-N3|=545, |N1-N3|=545 (Bound <= 5)
-  Voter Status : MAJORITY 2oo3 (Node 3 Outlier Masked)
-  Commanded PWM: 1545 us
---------------------------------------------------------------------------------
-[FRAME #6] TEST 6: Total Disagreement -> Predefined Fail-Safe (-9999)
-  Sensor Input : 30
-  Node Outputs : [Node 1: 1629 us] [Node 2: 1429 us] [Node 3: 1769 us]
-  Deltas       : |N1-N2|=200, |N2-N3|=340, |N1-N3|=140 (Bound <= 5)
-  Voter Status : FAIL-SAFE ACTIVATED (Total Disagreement)
-  Commanded PWM: -9999 (*** FAIL-SAFE ACTIVATED: ACTUATORS COMMANDED TO SAFE STATE ***)
---------------------------------------------------------------------------------
-
->>> TMR FAULT TOLERANCE SUITE COMPLETED SUCCESSFULLY <<<
-
-[EXEC] Entering continuous real-time flight control loop...
-[LOOP # 1] Pitch Rate:    0 ddeg/s | Commanded PWM: 1500 us | Status: UNANIMOUS (All Nodes Agree)
-[LOOP # 2] Pitch Rate:   20 ddeg/s | Commanded PWM: 1506 us | Status: UNANIMOUS (All Nodes Agree)
-[LOOP # 3] Pitch Rate:   45 ddeg/s | Commanded PWM: 1513 us | Status: UNANIMOUS (All Nodes Agree)
-[LOOP # 4] Pitch Rate:   80 ddeg/s | Commanded PWM: 1524 us | Status: UNANIMOUS (All Nodes Agree)
-[LOOP # 5] Pitch Rate:   50 ddeg/s | Commanded PWM: 1515 us | Status: UNANIMOUS (All Nodes Agree)
-[LOOP # 6] Pitch Rate:   10 ddeg/s | Commanded PWM: 1503 us | Status: UNANIMOUS (All Nodes Agree)
-[LOOP # 7] Pitch Rate:  -20 ddeg/s | Commanded PWM: 1494 us | Status: UNANIMOUS (All Nodes Agree)
-[LOOP # 8] Pitch Rate:  -60 ddeg/s | Commanded PWM: 1482 us | Status: UNANIMOUS (All Nodes Agree)
-[LOOP # 9] Pitch Rate:  -90 ddeg/s | Commanded PWM: 1473 us | Status: UNANIMOUS (All Nodes Agree)
-[LOOP #10] Pitch Rate:  -40 ddeg/s | Commanded PWM: 1488 us | Status: UNANIMOUS (All Nodes Agree)
-[LOOP #11] Pitch Rate:    0 ddeg/s | Commanded PWM: 1500 us | Status: UNANIMOUS (All Nodes Agree)
-
-[TEST 7] Simulating Core 2 Hardware Hang (Watchdog Timeout Verification)...
-[FRAME #7] TEST 7: Core 2 Unresponsive -> Watchdog Timeout Fail-Safe
-  Sensor Input : 25
-  Node Outputs : [Node 1: 1507 us] [Node 2: 1500 us] [Node 3: 1507 us]
-  Timeout Mask : 0x00000004 (Hardware Watchdog Trip)
-  Voter Status : FAIL-SAFE ACTIVATED (Core Watchdog Timeout)
-  Commanded PWM: -9999 (*** FAIL-SAFE ACTIVATED: ACTUATORS COMMANDED TO SAFE STATE ***)
---------------------------------------------------------------------------------
-
-[STATUS] Flight computer completed mission profile smoothly.
-[STATUS] All spatial memory zones intact. System entering standby.
+[INFO] Starting QEMU flight computer simulation...
+==============================================================================
+                QEMU SIMULATION OUTPUT CAPTURE
+==============================================================================
+
+================================================================================
+       BARE-METAL AMP TMR FLIGHT COMPUTER (ARM Cortex-A15 Quad-Core)           
+         Software-Implemented Fault Tolerance (SIFT) Architecture               
+================================================================================
+[BOOT] Master Arbiter active on Core ID: 0 (Raw MPIDR: 0x80000000)
+[BOOT] Physical Memory Partitioning:
+       System/Text Partition : 0x80000000 - 0x80FFFFFF (Core 0 Arbiter)
+       Zone 1 Partition      : 0x81000000 (In: 0x81000000, Out: 0x81000004, Core 1)
+       Zone 2 Partition      : 0x82000000 (In: 0x82000000, Out: 0x82000004, Core 2)
+       Zone 3 Partition      : 0x83000000 (In: 0x83000000, Out: 0x83000004, Core 3)
+       Stack Configuration   : 16KB total (4KB isolated per core)
+       Tolerance Bound       : delta <= 5 microseconds
+       Fail-Safe Command     : -9999 microseconds (Actuator Safe/Neutral)
+--------------------------------------------------------------------------------
+[SYNC] Releasing secondary cores (Cores 1, 2, 3) from QEMU holding pen...
+[SYNC] Core Readiness Status: Node 1=ONLINE, Node 2=ONLINE, Node 3=ONLINE
+
+>>> STARTING AUTOMATED TMR FAULT TOLERANCE VERIFICATION SUITE <<<
+
+[FRAME #1] TEST 1: Nominal Flight Frame (Level Attitude)
+  Sensor Input : 0
+  Node Outputs : [Node 1: 1500 us] [Node 2: 1500 us] [Node 3: 1500 us]
+  Deltas       : |N1-N2|=0, |N2-N3|=0, |N1-N3|=0 (Bound <= 5)
+  Voter Status : UNANIMOUS (All Nodes Agree)
+  Commanded PWM: 1500 us
+--------------------------------------------------------------------------------
+[FRAME #2] TEST 2: Bounded Estimator Noise (|delta| <= 5)
+  Sensor Input : 120
+  Node Outputs : [Node 1: 1538 us] [Node 2: 1533 us] [Node 3: 1537 us]
+  Deltas       : |N1-N2|=5, |N2-N3|=4, |N1-N3|=1 (Bound <= 5)
+  Voter Status : UNANIMOUS (All Nodes Agree)
+  Commanded PWM: 1536 us
+--------------------------------------------------------------------------------
+[FRAME #3] TEST 3: SEU Bit-Flip on Node 1 (Core 1 Fault)
+  Sensor Input : 50
+  Node Outputs : [Node 1: 2000 us] [Node 2: 1515 us] [Node 3: 1515 us]
+  Deltas       : |N1-N2|=485, |N2-N3|=0, |N1-N3|=485 (Bound <= 5)
+  Voter Status : MAJORITY 2oo3 (Node 1 Outlier Masked)
+  Commanded PWM: 1515 us
+--------------------------------------------------------------------------------
+[FRAME #4] TEST 4: SEU Bit-Flip on Node 2 (Core 2 Fault)
+  Sensor Input : -80
+  Node Outputs : [Node 1: 1476 us] [Node 2: 1220 us] [Node 3: 1476 us]
+  Deltas       : |N1-N2|=256, |N2-N3|=256, |N1-N3|=0 (Bound <= 5)
+  Voter Status : MAJORITY 2oo3 (Node 2 Outlier Masked)
+  Commanded PWM: 1476 us
+--------------------------------------------------------------------------------
+[FRAME #5] TEST 5: SEU Bit-Flip on Node 3 (Core 3 Fault)
+  Sensor Input : 150
+  Node Outputs : [Node 1: 1545 us] [Node 2: 1545 us] [Node 3: 1000 us]
+  Deltas       : |N1-N2|=0, |N2-N3|=545, |N1-N3|=545 (Bound <= 5)
+  Voter Status : MAJORITY 2oo3 (Node 3 Outlier Masked)
+  Commanded PWM: 1545 us
+--------------------------------------------------------------------------------
+[FRAME #6] TEST 6: Total Disagreement -> Predefined Fail-Safe (-9999)
+  Sensor Input : 30
+  Node Outputs : [Node 1: 1629 us] [Node 2: 1429 us] [Node 3: 1769 us]
+  Deltas       : |N1-N2|=200, |N2-N3|=340, |N1-N3|=140 (Bound <= 5)
+  Voter Status : FAIL-SAFE ACTIVATED (Total Disagreement)
+  Commanded PWM: -9999 (*** FAIL-SAFE ACTIVATED: ACTUATORS COMMANDED TO SAFE STATE ***)
+--------------------------------------------------------------------------------
+
+>>> TMR FAULT TOLERANCE SUITE COMPLETED SUCCESSFULLY <<<
+
+[EXEC] Entering continuous real-time flight control loop...
+[LOOP # 1] Pitch Rate:    0 ddeg/s | Commanded PWM: 1500 us | Status: UNANIMOUS (All Nodes Agree)
+[LOOP # 2] Pitch Rate:   20 ddeg/s | Commanded PWM: 1506 us | Status: UNANIMOUS (All Nodes Agree)
+[LOOP # 3] Pitch Rate:   45 ddeg/s | Commanded PWM: 1513 us | Status: UNANIMOUS (All Nodes Agree)
+[LOOP # 4] Pitch Rate:   80 ddeg/s | Commanded PWM: 1524 us | Status: UNANIMOUS (All Nodes Agree)
+[LOOP # 5] Pitch Rate:   50 ddeg/s | Commanded PWM: 1515 us | Status: UNANIMOUS (All Nodes Agree)
+[LOOP # 6] Pitch Rate:   10 ddeg/s | Commanded PWM: 1503 us | Status: UNANIMOUS (All Nodes Agree)
+[LOOP # 7] Pitch Rate:  -20 ddeg/s | Commanded PWM: 1494 us | Status: UNANIMOUS (All Nodes Agree)
+[LOOP # 8] Pitch Rate:  -60 ddeg/s | Commanded PWM: 1482 us | Status: UNANIMOUS (All Nodes Agree)
+[LOOP # 9] Pitch Rate:  -90 ddeg/s | Commanded PWM: 1473 us | Status: UNANIMOUS (All Nodes Agree)
+[LOOP #10] Pitch Rate:  -40 ddeg/s | Commanded PWM: 1488 us | Status: UNANIMOUS (All Nodes Agree)
+[LOOP #11] Pitch Rate:    0 ddeg/s | Commanded PWM: 1500 us | Status: UNANIMOUS (All Nodes Agree)
+
+[TEST 7] Simulating Core 2 Hardware Hang (Watchdog Timeout Verification)...
+[FRAME #7] TEST 7: Core 2 Unresponsive -> Watchdog Timeout Fail-Safe
+  Sensor Input : 25
+  Node Outputs : [Node 1: 1507 us] [Node 2: 1500 us] [Node 3: 1507 us]
+  Timeout Mask : 0x00000004 (Hardware Watchdog Trip)
+  Voter Status : FAIL-SAFE ACTIVATED (Core Watchdog Timeout)
+  Commanded PWM: -9999 (*** FAIL-SAFE ACTIVATED: ACTUATORS COMMANDED TO SAFE STATE ***)
+--------------------------------------------------------------------------------
+
+[STATUS] Flight computer completed mission profile smoothly.
+[STATUS] All spatial memory zones intact. System entering standby.

@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-verify:
+    name: Build, Unit Test & QEMU Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Toolchain & Prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-arm-none-eabi \
+            libnewlib-arm-none-eabi \
+            qemu-system-arm \
+            cppcheck \
+            build-essential \
+            python3
+
+      - name: Static Analysis (cppcheck)
+        run: |
+          cppcheck --enable=warning,style,performance,portability \
+            --error-exitcode=1 \
+            --suppress=missingIncludeSystem \
+            --inline-suppr \
+            -I src \
+            src/
+
+      - name: Host Unit Tests & Coverage
+        run: |
+          make test-host
+
+      - name: Build Firmware (Test Build Variant)
+        run: |
+          make clean
+          make all CFLAGS="-mcpu=cortex-a15 -marm -mfpu=neon-vfpv4 -mfloat-abi=softfp -O2 -Wall -Wextra -Werror -ffreestanding -nostdlib -Isrc -g -DTEST_BUILD=1 -Wl,-Map=tmr_flight_computer.map"
+
+      - name: Run QEMU Bare-Metal Emulation
+        run: |
+          qemu-system-arm -M vexpress-a15 -cpu cortex-a15 -smp 4 -nographic \
+            -kernel tmr_flight_computer.elf -accel tcg,thread=multi -serial file:qemu_ci_output.log &
+          QEMU_PID=$!
+          sleep 5
+          kill -9 $QEMU_PID 2>/dev/null || true
+
+      - name: Verify Flight Telemetry Output
+        run: |
+          python3 tests/check_uart_output.py qemu_ci_output.log
+
+      - name: Upload Build & Verification Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tmr-flight-artifacts
+          path: |
+            tmr_flight_computer.elf
+            tmr_flight_computer.bin
+            tmr_flight_computer.map
+            qemu_ci_output.log
+            voter.c.gcov

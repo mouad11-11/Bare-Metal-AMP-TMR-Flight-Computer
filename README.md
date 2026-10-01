@@ -3,12 +3,12 @@
 [![Target: ARM Cortex-A15](https://img.shields.io/badge/Target-ARM%20Cortex--A15-blue.svg)](https://developer.arm.com/)
 [![Emulation: QEMU vexpress-a15](https://img.shields.io/badge/Emulation-QEMU%20vexpress--a15-green.svg)](https://www.qemu.org/)
 [![Architecture: SIFT TMR AMP](https://img.shields.io/badge/Architecture-SIFT%20TMR%20AMP-orange.svg)]()
-[![Tests: 7/7 Passing](https://img.shields.io/badge/Tests-7%2F7%20Passing-brightgreen.svg)]()
+[![CI](https://github.com/mouad11-11/Bare-Metal-AMP-TMR-Flight-Computer/actions/workflows/ci.yml/badge.svg)](https://github.com/mouad11-11/Bare-Metal-AMP-TMR-Flight-Computer/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
-A safety-critical **Software-Implemented Fault Tolerance (SIFT)** architecture using **Triple Modular Redundancy (TMR)** on a bare-metal quad-core **ARM Cortex-A15** processor (`vexpress-a15`). 
+A safety-critical **architecture demonstrator** implementing **Software-Implemented Fault Tolerance (SIFT)** using **Triple Modular Redundancy (TMR)** on a bare-metal quad-core **ARM Cortex-A15** processor (`vexpress-a15`). 
 
-The system utilizes **Asymmetric Multiprocessing (AMP)** to assign deterministic, isolated flight control tasks across 4 physical CPU cores without operating system overhead, scheduling jitter, or cache-line contention.
+The system utilizes **Asymmetric Multiprocessing (AMP)** to assign isolated flight control tasks across 4 physical CPU cores without operating system overhead, targeting minimal scheduling jitter and spatial isolation without dynamic memory allocation.
 
 ---
 

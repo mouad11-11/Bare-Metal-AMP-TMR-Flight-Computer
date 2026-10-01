@@ -60,10 +60,7 @@ void amp_release_qemu_secondary_cores(void) {
 }
 
 void secondary_core_boot_notify(void) {
-    uint32_t mpidr;
-    __asm__ volatile("mrc p15, 0, %0, c0, c0, 5" : "=r"(mpidr));
     uint32_t core_id = get_core_id();
-    uart_printf("[SYNC] Secondary Core Woke Up: ID=%u (Raw MPIDR: 0x%x)\n", core_id, mpidr);
     if (core_id >= 1 && core_id <= 3) {
         core_ready[core_id] = 1;
         dmb();
