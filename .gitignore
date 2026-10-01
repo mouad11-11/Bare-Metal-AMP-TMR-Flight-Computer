@@ -34,5 +34,6 @@ __pycache__/
 .DS_Store
 
 # Toolchain download scratch (keep local tools untracked)
-tools/
+tools/*
+!tools/check_traceability.py
 D:/tools/
