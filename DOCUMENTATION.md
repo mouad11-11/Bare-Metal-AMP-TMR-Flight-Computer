@@ -481,7 +481,7 @@ python live_monitor.py
 
 | # | Anomaly / Symptom | Root Cause | Engineering Solution / Fix | Regression Test ID |
 |---|---|---|---|:---:|
-| **BUG-01** | Arithmetic overflow in pairwise delta calculation | Direct 32-bit subtraction `abs(a - b)` overflows when $a = \text{INT32\_MIN}$ or $|a - b| > 2^{31}-1$. | Implemented 64-bit intermediate promotion in `safe_diff_i32` with explicit saturation in `src/safe_math.h`. | `T-MATH-007`<br>`T-VOTE-001` |
+| **BUG-01** | Arithmetic overflow in pairwise delta calculation | Direct 32-bit subtraction `abs(a - b)` overflows when $a = \text{INT32-MIN}$ or $|a - b| > 2^{31}-1$. | Implemented 64-bit intermediate promotion in `safe_diff_i32` with explicit saturation in `src/safe_math.h`. | `T-MATH-007`<br>`T-VOTE-001` |
 | **BUG-02** | MinGW host build failure with 16KB alignment | Windows PE/COFF object file format limits section alignment to maximum 8192 bytes. | Added target-conditional alignment macro (`16384` for ARM target, `4096` for x86_64 host unit tests) in `src/mmu.c`. | `T-MMU-001` |
 | **BUG-03** | Outlier node could pass unclamped values | Raw 2oo3 voter majority averaged two agreeing nodes without verifying physical plausibility bounds. | Separated raw mathematical consensus (`vote_2oo3`) from physical plausibility clamping and rate limiting in `vote_frame_inputs`. | `T-VOTE-008`<br>`T-VOTE-009` |
 | **BUG-04** | Stack canary test false negative during fault injection | Fault injector wrote `STACK_CANARY_VALUE` constant into corrupted stack location instead of a corrupted word. | Updated test harness to write explicit corrupted pattern `0xBAADF00DU`, correctly verifying boundary trip. | `T-STK-001`<br>`FI-STK-001` |

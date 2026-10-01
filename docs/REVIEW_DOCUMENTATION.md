@@ -68,7 +68,7 @@ This document provides a comprehensive technical audit and side-by-side architec
 - **Algorithm**: If all three pairwise absolute differences $|y_a - y_b| \le 5$ µs, the voter computed the **arithmetic average** `(y1 + y2 + y3) / 3`.
 - **Flaw 1 (Skew Vulnerability)**: Averaging three values allows a node that is close to the threshold boundary ($+5$ µs) to pull the commanded actuator output away from the true neutral attitude.
 - **Flaw 2 (Chain Case Failure)**: When $d_{12} = 4 \le 5$ and $d_{23} = 4 \le 5$, but $d_{13} = 8 > 5$ (a common occurrence with minor sensor noise), exactly two pairs agree. The baseline prototype treated this as an outlier or total disagreement, incorrectly discarding valid data.
-- **Flaw 3 (Arithmetic Overflow)**: Pairwise delta subtraction `abs(a - b)` in 32-bit signed integer arithmetic wraps around if $a = \text{INT32\_MIN}$ or $|a - b| > 2^{31}-1$.
+- **Flaw 3 (Arithmetic Overflow)**: Pairwise delta subtraction `abs(a - b)` in 32-bit signed integer arithmetic wraps around if $a = \text{INT32-MIN}$ or $|a - b| > 2^{31}-1$.
 
 #### Hardened Architecture:
 - **Median Selection (`median3`)**: In unanimous agreement ($d_{12}, d_{23}, d_{13} \le 5$), the voter selects the exact mathematical median of the three values, completely immune to single-node skew.
@@ -86,7 +86,7 @@ This document provides a comprehensive technical audit and side-by-side architec
 
 #### Hardened Architecture:
 - **Leaky-Bucket Fault Accumulator**: Implemented in [`src/node_health.c`](file:///c:/Users/hp/Desktop/TMR/src/node_health.c). Every outlier detection, timeout, plausibility violation, or CRC error increments that node's fault counter:
-  $$\text{fault\_cnt}_i \leftarrow \text{fault\_cnt}_i + 1$$
+  $$\text{faultCount}_i \leftarrow \text{faultCount}_i + 1$$
 - **Permanent Latch-Out (`NODE_FAULT_LATCH_N = 3`)**: If a core accumulates 3 consecutive or near-consecutive faults, it is permanently latched out of the quorum.
 - **Strictly No In-Flight Re-Admission**: Once latched out, a core is never re-admitted during flight. It remains quarantined until external power cycle and pre-flight POST.
 - **Leaky Recovery Filter (`NODE_GOOD_STREAK_M = 100`)**: If a healthy node experiences an isolated transient cosmic ray bit-flip, its fault counter is safely decremented by 1 only after sustaining 100 consecutive flawless frames.

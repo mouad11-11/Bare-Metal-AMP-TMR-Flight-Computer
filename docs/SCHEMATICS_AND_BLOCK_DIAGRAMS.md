@@ -143,13 +143,14 @@ Core 0 executes two parallel execution pipelines:
 ### 3.3 Node Health Leaky-Bucket Filter (Tree 2)
 
 For each compute node $i \in \{1, 2, 3\}$ at frame $k$:
-$$\text{fault\_cnt}_i(k) = \begin{cases}
-\text{fault\_cnt}_i(k-1) + 1 & \text{if outlier, timeout, CRC fault, or plausibility breach} \\
-\text{fault\_cnt}_i(k-1) - 1 & \text{if } \text{good\_streak}_i \ge 100 \land \text{fault\_cnt}_i > 0 \\
-\text{fault\_cnt}_i(k-1) & \text{otherwise}
+$$\text{faultCount}_i(k) = \begin{cases}
+\text{faultCount}_i(k-1) + 1 & \text{if outlier, timeout, CRC fault, or plausibility breach} \\
+\text{faultCount}_i(k-1) - 1 & \text{if } \text{goodStreak}_i \ge 100 \land \text{faultCount}_i > 0 \\
+\text{faultCount}_i(k-1) & \text{otherwise}
 \end{cases}$$
 
 $$\text{State}_i(k) = \begin{cases}
-\text{LATCHED\_OUT (Quarantined)} & \text{if } \text{fault\_cnt}_i(k) \ge 3 \\
+\text{LATCHED-OUT (Quarantined)} & \text{if } \text{faultCount}_i(k) \ge 3 \\
 \text{OPERATIONAL} & \text{otherwise}
 \end{cases}$$
+
