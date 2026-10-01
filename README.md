@@ -138,30 +138,93 @@ qemu-system-arm -M vexpress-a15 -cpu cortex-a15 -smp 4 -nographic \
 
 ---
 
+---
+
+## 🛡️ Limitations and Threat Model
+
+This project is an **architectural and algorithmic demonstrator** developed under the rigorous software engineering principles of DO-178C Level A and ECSS-E-ST-40C. 
+
+### Covered Threats & Fault Mitigation
+- **Transient Single Event Upsets (SEUs)**: Single-bit flips in compute node ALU registers, memory words, and mailbox payloads are transparently masked by the 2oo3 median voter.
+- **Node Execution Hangs**: Detected by Core 0 hardware spin-counter watchdogs and isolated within 500,000 cycles.
+- **Spatial Memory Corruption**: Prevented by ARMv7-A Short-Descriptor MMU tables enforcing isolated read-only code partitions and execute-never (`XN`) data pages, augmented by 4-word stack canaries (`0xDEADBEEF`).
+- **Communication Inconsistencies**: Multi-rail inverted fields and IEEE 802.3 CRC32 checksums reject stale and corrupt mailbox packets.
+- **Master Arbiter ALU Glitches**: Mitigated via Core 0 Dual-Rail Software Lockstep and continuous voter self-monitoring.
+
+### Unmodeled Effects & Architectural Boundaries
+- **QEMU Simulation Platform**: QEMU uses Dynamic Binary Translation (TCG). Instruction timing, cache hit/miss penalties, bus contention, and clock jitter are not cycle-accurate.
+- **Physical Silicon Sharing**: All four virtual cores share a single virtual CPU package and power rail. True flight qualification requires physical separation across multiple silicon packages or lockstep Cortex-R5F cores.
+- For complete details, see [`docs/FAULT_MODEL.md`](docs/FAULT_MODEL.md) and [`docs/safety/LIMITATIONS.md`](docs/safety/LIMITATIONS.md).
+
+---
+
+## 🧪 Comprehensive Verification & Test Commands
+
+The project features a multi-tiered verification pipeline combining host unit tests, bare-metal QEMU simulation, and automated fault injection:
+
+| Command | Subsystem Verified | Coverage / Pass Criteria |
+|---|---|---|
+| `make test-host` | Native C Host Unit Harness (Voter, Health, Failsafe, Supervision, POST, Math, MMU, Lockstep, Mailbox, PMU, Diversity) | **100% Branch Coverage**, MC/DC truth tables |
+| `make test-fi` | Automated End-to-End Fault-Injection Campaign (113 vectors across 7 categories) | **0 Undetected Erroneous Outputs**, 11/11 QEMU assertions |
+| `python tools/check_traceability.py` | DO-178C DAL A Life-Cycle Bi-Directional Traceability Audit | **16/16 Safety Requirements Verified**, zero orphans |
+| `python tests/check_uart_output.py` | Live QEMU Bare-Metal UART Telemetry Assertion Suite | **11/11 Telemetry Verdict Assertions Passing** |
+| `make all` | Cross-compilation for ARM Cortex-A15 bare-metal target | Clean build, **0 warnings** (`-Wall -Wextra -Werror`) |
+
+---
+
 ## 📁 Repository Structure
 
 ```
 .
 ├── src/
-│   ├── startup.S               # Multicore assembly boot, MPIDR, FPEXC.EN, stack calculation
+│   ├── startup.S               # Multicore assembly boot, exception vectors, MPIDR, stack init
 │   ├── main.c                  # Core 0 Arbiter, sensor distribution, test suite, continuous loop
-│   ├── amp.h / amp.c           # Inter-core mailbox, secondary entry, core_done synchronization
-│   ├── voter.h / voter.c       # 2oo3 Bounded Majority Voter (|Δ| <= 5) with 64-bit safe_diff
-│   ├── flight_control.h / .c   # Deterministic flight control algorithm & SEU fault injector
-│   ├── memory_map.h            # Physical memory addresses (Zones 1-3, System/Text, UART)
-│   ├── uart.h / uart.c         # ARM PL011 UART console telemetry driver at 0x1C090000
-│   └── types.h                 # Fixed-width types, DMB/DSB/ISB/SEV/WFE architectural barriers
-├── DOCUMENTATION.md            # In-depth architectural specification, theory, and bug solutions
-├── linker.ld                   # Linker script defining 16MB System, 16KB stack, and Zone origins
-├── live_monitor.py             # Native desktop Tkinter GUI monitor with real-time plots
-├── quickstart.bat              # One-click review script for Windows
-├── quickstart.sh               # One-click review script for Linux/macOS/WSL
-├── test_flight.ps1             # Automated regression test runner
-├── Makefile                    # Standard GNU Makefile
-├── CMakeLists.txt              # CMake build configuration
-├── toolchain-arm-none-eabi.cmake # CMake cross-compilation toolchain file
-├── .gitignore                  # Git ignore rules for build artifacts
-└── LICENSE                     # MIT Open Source License
+│   ├── config.h                # Centralized safety parameters, bounds, and timing thresholds
+│   ├── types.h                 # Fixed-width types, DMB/DSB/ISB/SEV/WFE architectural barriers
+│   ├── memory_map.h            # Physical memory map (Zones 1-3, System/Text, UART, Holding Pen)
+│   ├── safe_math.h             # Saturating 32-bit integer arithmetic library
+│   ├── voter.h / voter.c       # Hardened 2oo3 Bounded Majority Voter with median consensus
+│   ├── node_health.h / .c      # Leaky-bucket fault counters and permanent node latch-out
+│   ├── failsafe.h / .c         # Deterministic fail-safe command state machine and reason codes
+│   ├── supervision.h / .c      # Frame deadline supervision, heartbeats, and CFI signatures
+│   ├── post.h / .c             # Power-On Self-Test (CPU registers, March C- RAM, CRC32, voter)
+│   ├── stack_monitor.h / .c    # Stack boundary canaries and peak watermarking diagnostics
+│   ├── mmu.h / mmu.c           # ARMv7-A Short-Descriptor MMU tables & spatial core isolation
+│   ├── lockstep.h / lockstep.c # Core 0 Dual-Rail Software Lockstep and voter self-monitoring
+│   ├── mailbox.h / mailbox.c   # Double-buffered CRC32 inter-core mailbox protocol
+│   ├── pmu.h / pmu.c           # Cortex-A15 Performance Monitor Unit (PMU) WCET profiler
+│   ├── flight_control.h / .c   # Flight control algorithms (Primary & Diverse Q15) + SEU injector
+│   └── uart.h / uart.c         # ARM PL011 UART console telemetry driver at 0x1C090000
+├── docs/
+│   ├── FAULT_MODEL.md          # Comprehensive fault model, assumptions, and threat bounds
+│   ├── CODE_AUDIT.md           # Deep architectural audit of initial baseline implementation
+│   ├── DISCREPANCIES.md        # Audit discrepancies and design reconciliations
+│   ├── IPC_PROTOCOL.md         # Inter-Processor Communication protocol and barrier rules
+│   ├── MEMORY_PROTECTION.md    # Spatial MMU translation tables, access permissions, and XN
+│   ├── MISRA_DEVIATIONS.md     # MISRA C:2012 / SEI CERT C deviation catalog with rationale
+│   ├── COVERAGE.md             # 100% Statement, Branch, and MC/DC structural coverage report
+│   ├── FI_REPORT.md            # Exhaustive 113-vector fault injection campaign report
+│   ├── PORTING_TO_SAFETY_MCU.md# Porting roadmap to lockstep silicon (Cortex-R5F, TMS570, AURIX)
+│   └── safety/                 # DO-178C DAL A / ECSS Safety Documentation Set
+│       ├── SAFETY_PLAN.md      # Software Safety Plan (SSP)
+│       ├── HAZARD_ANALYSIS.md  # System Hazard Analysis and Risk Assessment (HARA)
+│       ├── SAFETY_REQUIREMENTS.md # Formal numbered requirements (SR-001..SR-016)
+│       ├── FMEA.md             # Subsystem Failure Modes, Effects, and Criticality Analysis
+│       ├── FTA.md              # Fault Tree Analysis with Mermaid Top Event logic diagram
+│       ├── COMMON_CAUSE_ANALYSIS.md # Common Cause Analysis (CCA) and independence defense
+│       ├── ASSUMPTIONS_OF_USE.md # Assumptions of Use and operational envelope
+│       ├── LIMITATIONS.md      # Honest technical limitations and simulation boundaries
+│       └── TRACEABILITY.md     # Bi-directional traceability matrix (Hazards -> Reqs -> Tests)
+├── tests/
+│   ├── host/                   # Native C host unit test harnesses (100% branch coverage)
+│   ├── fi/                     # Automated fault-injection campaign harness and runner
+│   └── check_uart_output.py    # QEMU UART simulation output validator (11 assertions)
+├── tools/
+│   └── check_traceability.py   # Automated DO-178C traceability matrix validator
+├── linker.ld                   # Linker script defining System partition, stacks, and Zone origins
+├── Makefile / CMakeLists.txt   # Dual synchronized build systems
+├── quickstart.bat / .sh        # Turnkey launchers for Windows and Linux/WSL
+└── live_monitor.py             # Desktop Tkinter GUI telemetry monitor with animated voter plots
 ```
 
 ---

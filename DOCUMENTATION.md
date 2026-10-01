@@ -419,3 +419,71 @@ python live_monitor.py
 2. **DO-178C Level A Objectives**: Addresses spatial partitioning, structural coverage, stack monitoring, and single-event fault mitigation.
 3. **No Dynamic Allocation**: No `malloc()`, `free()`, or dynamic heap fragmentation. All memory is statically mapped at compile time.
 4. **COTS Processor Viability**: Proves that consumer multi-core ARM chips can be hardened via software to achieve the fault-tolerance guarantees of specialized radiation-hardened hardware.
+
+---
+
+## 8. Hardened Safety Subsystems & Decision Trees (Phases 1-3)
+
+### 8.1 The Six Safety Decision Trees
+
+```
++-----------------------------------------------------------------------------+
+|                     SYSTEM SAFETY DECISION TREES                            |
++-----------------------------------------------------------------------------+
+| Tree 1: 2oo3 Voter (Median consensus, chain cases, degraded 2oo2 fallback)  |
+| Tree 2: Node Health (Leaky-bucket fault counters, permanent latch-out)       |
+| Tree 3: Supervision (Frame deadline tracking, CFI signatures, watchdog kick)|
+| Tree 4: Exception Handling (ARMv7-A vector stubs, fault records, fail-silent)|
+| Tree 5: Power-On Self-Test (CPU registers, March C- RAM, CRC32, voter check)|
+| Tree 6: Fail-Safe State Machine (Latching reason codes, safe PWM -9999 us)   |
++-----------------------------------------------------------------------------+
+```
+
+1. **Tree 1: Hardened 2oo3 Voter (`src/voter.c`)**:
+   - Computes pairwise 64-bit safe deltas ($d_{12}, d_{23}, d_{13}$) against threshold `VOTE_AGREE_THRESHOLD_US = 5` µs.
+   - Unanimous consensus selects the **mathematical median** (`median3`), preventing single-sample drift.
+   - Resolves the ambiguous **chain case** ($d_{12} \le 5, d_{23} \le 5, d_{13} > 5$) by outputting the median with `STATUS=DEGRADED` without penalizing healthy nodes.
+   - Outliers are isolated and routed to Tree 2 health tracking.
+2. **Tree 2: Node Health & Latch-Out (`src/node_health.c`)**:
+   - Implements a leaky-bucket filter: fault count increments on outlier/timeout/plausibility breach.
+   - A node is **permanently latched offline** upon reaching `NODE_FAULT_LATCH_N = 3` faults.
+   - Healthy operation decays fault count after `NODE_GOOD_STREAK_M = 100` consecutive passes.
+   - Strictly enforces **no in-flight re-admission** of latched nodes.
+3. **Tree 3: Frame Supervision & Watchdog (`src/supervision.c`)**:
+   - Tracks frame deadlines (`500,000` cycles) and enforces per-node completion tokens.
+   - Chained Control-Flow Integrity (CFI) signature ensures all frame phases execute in strict order before the watchdog kick can occur.
+4. **Tree 4: Complete Exception Vector Table (`src/startup.S`)**:
+   - Populates all 8 ARMv7-A vectors: Reset, Undefined Instruction, SVC, Prefetch Abort, Data Abort, Hyp Trap, IRQ, FIQ.
+   - Captures architectural fault registers (`LR`, `SPSR`, `DFSR`, `DFAR`) into non-volatile ring buffers.
+   - Node exceptions cause immediate fail-silent quiescence; Core 0 exceptions force fail-safe actuation.
+5. **Tree 5: Power-On Self-Test (`src/post.c`)**:
+   - Runs pre-flight diagnostics: CPU register walking bits, RAM March C- memory scan, code section IEEE 802.3 CRC32, and voter known vectors.
+   - Actuators remain disabled until 100% of POST diagnostics report `POST_PASS`.
+6. **Tree 6: Fail-Safe & Latching State Machine (`src/failsafe.c`)**:
+   - Commands the deterministic neutral fail-safe pulse width of `-9999` µs upon any critical safety fault.
+   - Records explicit reason codes: `TOTAL_DISAGREEMENT`, `WATCHDOG`, `EXCEPTION`, `POST_FAIL`, `INTEGRITY_FAIL`, `DEADLINE`.
+
+---
+
+### 8.2 Architectural Hardening Modules
+
+- **Safe Saturating Math (`src/safe_math.h`)**: Pure freestanding 32-bit saturating addition, subtraction, multiplication, and division preventing integer overflow wrap-around.
+- **Spatial MMU Partitioning (`src/mmu.c`)**: ARMv7-A Short-Descriptor tables with 1 MB section descriptors, Execute-Never (`XN`) protection on all data, and isolated read-only code partitions.
+- **Dual-Rail Lockstep Self-Monitoring (`src/lockstep.c`)**: Core 0 Master Arbiter runs parallel redundant voting channels using inverted operand representations to detect internal CPU ALU glitches.
+- **Double-Buffered CRC32 Mailboxes (`src/mailbox.c`)**: Inter-core communication protected by ping-pong buffers, sequence counters, and IEEE 802.3 32-bit CRCs.
+- **PMU WCET Profiler (`src/pmu.c`)**: Directly measures Cortex-A15 cycle counter registers (`PMCCNTR`), providing segment-level execution timing breakdown.
+- **Design Diversity Groundwork (`src/flight_control.c`)**: Node 2 executes an independently formulated Q15 fixed-point control algorithm providing algorithmic and compiler optimization diversity.
+- **Triplicate Sensor Cross-Checking (`src/flight_control.c`)**: Supports 3 redundant sensor channels with input-side voting prior to flight control computation.
+
+---
+
+## 9. Bugs Found and Fixed Log
+
+| # | Anomaly / Symptom | Root Cause | Engineering Solution / Fix | Regression Test ID |
+|---|---|---|---|:---:|
+| **BUG-01** | Arithmetic overflow in pairwise delta calculation | Direct 32-bit subtraction `abs(a - b)` overflows when $a = \text{INT32\_MIN}$ or $|a - b| > 2^{31}-1$. | Implemented 64-bit intermediate promotion in `safe_diff_i32` with explicit saturation in `src/safe_math.h`. | `T-MATH-007`<br>`T-VOTE-001` |
+| **BUG-02** | MinGW host build failure with 16KB alignment | Windows PE/COFF object file format limits section alignment to maximum 8192 bytes. | Added target-conditional alignment macro (`16384` for ARM target, `4096` for x86_64 host unit tests) in `src/mmu.c`. | `T-MMU-001` |
+| **BUG-03** | Outlier node could pass unclamped values | Raw 2oo3 voter majority averaged two agreeing nodes without verifying physical plausibility bounds. | Separated raw mathematical consensus (`vote_2oo3`) from physical plausibility clamping and rate limiting in `vote_frame_inputs`. | `T-VOTE-008`<br>`T-VOTE-009` |
+| **BUG-04** | Stack canary test false negative during fault injection | Fault injector wrote `STACK_CANARY_VALUE` constant into corrupted stack location instead of a corrupted word. | Updated test harness to write explicit corrupted pattern `0xBAADF00DU`, correctly verifying boundary trip. | `T-STK-001`<br>`FI-STK-001` |
+| **BUG-05** | Windows serial log file read race in QEMU runner | Python script attempted to read QEMU serial log file immediately upon `proc.terminate()` before OS buffer flush. | Added explicit `0.5s` post-termination buffer flush delay in `tests/fi/run_fault_campaign.py`. | `make test-fi` |
+
