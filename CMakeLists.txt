@@ -21,6 +21,7 @@ set(SRCS
     src/flight_control.c
     src/failsafe.c
     src/node_health.c
+    src/supervision.c
     src/stack_monitor.c
 )
 

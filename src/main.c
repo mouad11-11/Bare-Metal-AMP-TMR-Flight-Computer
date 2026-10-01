@@ -8,6 +8,7 @@
 #include "failsafe.h"
 #include "stack_monitor.h"
 #include "node_health.h"
+#include "supervision.h"
 
 static void print_banner(void) {
     uart_puts("\n");
@@ -124,6 +125,7 @@ int main(void) {
     stack_monitor_init();
     failsafe_init();
     node_health_init();
+    supervision_init();
     voter_reset_rate_limit(PWM_NEUTRAL_US);
     print_banner();
     print_system_info();

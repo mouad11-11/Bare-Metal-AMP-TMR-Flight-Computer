@@ -5,6 +5,7 @@
 #include "uart.h"
 #include "failsafe.h"
 #include "stack_monitor.h"
+#include "supervision.h"
 
 void (* volatile secondary_spin_addr)(void) = NULL;
 volatile uint32_t core_done[4] = {0, 0, 0, 0};
@@ -74,24 +75,26 @@ void secondary_core_entry(void) {
     uint32_t core_id = get_core_id();
     if (core_id < 1 || core_id > 3) return;
 
-    /*
-     * Spatial Partitioning:
-     * Core 1 reads exclusively from Zone 1 (0x81000000)
-     * Core 2 reads exclusively from Zone 2 (0x82000000)
-     * Core 3 reads exclusively from Zone 3 (0x83000000)
-     */
+    /* Checkpoint 1: Ingest sensor input */
+    supervision_checkpoint(core_id, CFI_TOKEN_READ_INPUT);
     int32_t sensor_in = zone_read_input(core_id);
 
-    /* Execute deterministic flight control algorithm */
+    /* Checkpoint 2: Compute flight control algorithm */
+    supervision_checkpoint(core_id, CFI_TOKEN_COMPUTE);
     int32_t pwm_out = flight_control_compute(core_id, sensor_in);
 
-    /* Spatial Partitioning: Core writes exclusively to its zone */
+    /* Checkpoint 3: Write spatial output zone */
+    supervision_checkpoint(core_id, CFI_TOKEN_WRITE_OUTPUT);
     zone_write_output(core_id, pwm_out);
 
-    /* Verify local stack canary integrity before reporting completion */
+    /* Checkpoint 4: Stack canary boundary verification */
+    supervision_checkpoint(core_id, CFI_TOKEN_CANARY_CHECK);
     if (!stack_canary_check_core(core_id)) {
         return; /* Fail silent upon stack exhaustion / boundary breach */
     }
+
+    /* Checkpoint 5: Frame completion token */
+    supervision_checkpoint(core_id, CFI_TOKEN_COMPLETE);
 
     /* Flag completion */
     dmb();
@@ -108,6 +111,9 @@ bool amp_dispatch_and_wait(uint32_t *timed_out_mask) {
         failsafe_trigger(REASON_INTEGRITY_FAIL);
         return false;
     }
+
+    /* Prime supervision subsystem and CFI signatures for new frame cycle */
+    supervision_frame_start(g_cycle_counter + 1);
 
     core_done[1] = 0;
     core_done[2] = 0;
@@ -136,12 +142,19 @@ bool amp_dispatch_and_wait(uint32_t *timed_out_mask) {
     secondary_spin_addr = NULL;
     dmb();
 
-    if (timeout == 0) {
-        uint32_t mask = 0;
-        if (!core_done[1]) mask |= (1 << 1);
-        if (!core_done[2]) mask |= (1 << 2);
-        if (!core_done[3]) mask |= (1 << 3);
-        if (timed_out_mask) *timed_out_mask = mask;
+    /* Evaluate deadlines, completion flags, and CFI signatures across nodes */
+    uint32_t done_mask = 0;
+    if (core_done[1]) done_mask |= (1 << 1);
+    if (core_done[2]) done_mask |= (1 << 2);
+    if (core_done[3]) done_mask |= (1 << 3);
+
+    uint32_t fault_mask = 0;
+    bool eval_ok = supervision_evaluate_nodes(done_mask, &fault_mask);
+
+    if (timeout == 0 || !eval_ok) {
+        if (timed_out_mask) {
+            *timed_out_mask = fault_mask ? fault_mask : (~done_mask & 0x0E);
+        }
         return false;
     }
 
