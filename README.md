@@ -12,6 +12,18 @@ The system uses **Asymmetric Multiprocessing (AMP)** to pin dedicated flight con
 
 This repository demonstrates the engineering progression of a fault-tolerant multiprocessing architecture, advancing from a basic educational baseline into a hardened software-implemented fault tolerance implementation.
 
+### The v1.0 Baseline: Architectural Weaknesses & Motivation for v2.0
+The initial release ([`v1.0-prototype`](https://github.com/mouad11-11/Bare-Metal-AMP-TMR-Flight-Computer/tree/v1.0-prototype)) served as an educational proof-of-concept for Asymmetric Multiprocessing (AMP) on a bare-metal quad-core ARM Cortex-A15. While it demonstrated the fundamental mechanics of waking secondary cores and dispatching redundant flight calculations, it possessed critical architectural vulnerabilities that prevented genuine fault tolerance:
+- **Flawed Voting Logic**: It computed an unweighted arithmetic average of all three node outputs rather than a true majority consensus; a single corrupted outlier directly corrupted the flight actuator command instead of being masked.
+- **Stateless Execution**: Compute nodes operated without persistent health history or latch-out mechanisms, allowing persistently faulty or diverging cores to continuously re-enter subsequent voting rounds.
+- **Unbounded Spin-Locks**: Core 0 polled secondary completion flags without watchdog countdown limits, meaning a single hung core permanently froze the entire flight computer.
+- **Unprotected Memory & IPC**: All four cores shared a flat, unpartitioned memory address space with zero spatial protection (no MMU tables) and unvalidated shared-memory buffers without CRC integrity checking, creating vulnerability to silent memory corruption and race conditions.
+- **Arbiter as a Single Point of Failure**: Core 0 executed the voter without self-monitoring or dual-rail checks, leaving ALU transient faults on the arbiter completely undetected.
+- **Empty Exception Traps**: Hardware aborts and undefined instructions branched into empty infinite spin-loops without diagnostics or safe-state transitions.
+- **Absence of Verification**: The codebase had zero automated unit tests, no code coverage telemetry, and no reproducible fault-injection framework.
+
+To eliminate these vulnerabilities, **v2.0 Hardened** was engineered as a robust **Software-Implemented Fault Tolerance (SIFT)** architecture. It introduces a bounded 2oo3 median voter (`median3`) with chain-ambiguity resolution and degraded 2oo2 fallback, leaky-bucket health accumulators with permanent latch-out, bounded watchdog timeouts with 5-state Control-Flow Integrity (CFI) tokens, spatial memory partitioning with MMU tables, double-buffered CRC32 mailboxes, Core 0 dual-rail software lockstep self-monitoring, Power-On Self-Tests (POST), and a comprehensive automated test pipeline comprising 246,094 unit test assertions and a 113-vector automated fault-injection campaign.
+
 | Engineering Domain | Baseline Prototype (`v1.0-prototype`) | Hardened Architecture (`v2.0-hardened` / `main`) | Verification Proof |
 |---|---|---|:---:|
 | **Architecture Scope** | Educational demonstrator | **Hardened Fault-Tolerant Demonstrator (SIFT)** | [Traceability Matrix](docs/safety/TRACEABILITY.md) |

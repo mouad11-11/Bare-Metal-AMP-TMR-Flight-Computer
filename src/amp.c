@@ -146,7 +146,7 @@ bool amp_dispatch_and_wait(uint32_t *timed_out_mask) {
      */
     uint32_t timeout = WATCHDOG_MAX_CYCLES;
     while ((!core_done[1] || !core_done[2] || !core_done[3]) && --timeout > 0) {
-        __asm__ volatile("nop");
+        yield_cpu();
     }
     dmb();
 

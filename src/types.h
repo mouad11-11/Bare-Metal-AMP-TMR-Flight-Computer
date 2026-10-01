@@ -55,6 +55,10 @@ static inline void wfi(void) {
     __asm__ volatile("wfi" ::: "memory");
 }
 
+static inline void yield_cpu(void) {
+    __asm__ volatile("yield" ::: "memory");
+}
+
 /* Retrieve CPU Core ID from MPIDR (Multiprocessor Affinity Register) */
 static inline uint32_t get_core_id(void) {
     uint32_t mpidr;
@@ -71,6 +75,7 @@ static inline void isb(void) { __asm__ volatile("" ::: "memory"); }
 static inline void sev(void) { }
 static inline void wfe(void) { }
 static inline void wfi(void) { }
+static inline void yield_cpu(void) { }
 static inline uint32_t get_core_id(void) { return 0; }
 #endif
 
