@@ -18,12 +18,13 @@ Because this is a bare-metal embedded system operating directly on bare ARM Cort
 - **Affected Files**: [`src/memory_map.h`](file:///c:/Users/hp/Desktop/TMR/src/memory_map.h), [`src/uart.c`](file:///c:/Users/hp/Desktop/TMR/src/uart.c), [`src/amp.c`](file:///c:/Users/hp/Desktop/TMR/src/amp.c), [`src/mmu.c`](file:///c:/Users/hp/Desktop/TMR/src/mmu.c).
 - **Source Code Instance**:
   ```c
-  #define UART0_BASE       0x1C090000U
-  #define UART0_DR         ((volatile uint32_t *)(UART0_BASE + 0x00U))
-  #define HOLDING_PEN_ADDR 0x1C010030U
+  #define PL011_UART0_BASE        0x1C090000U
+  #define VEXPRESS_SYSREGS_BASE   0x1C010000U
+  volatile uint32_t *sys_flags1 = (volatile uint32_t *)0x1C010030U;
+  volatile uint32_t * const uart0_dr = (volatile uint32_t *)(PL011_UART0_BASE + 0x00U);
   ```
 - **Rationale**: Bare-metal embedded systems interact with memory-mapped peripherals (PL011 UART, Core Holding Pen, and Zone Mailbox Buffers) via absolute physical addresses defined by the hardware memory map.
-- **Compensating Controls**: All base addresses are defined as unsigned hexadecimal constants (`0x...U`), strictly bounds-checked, and isolated behind hardware MMU translation tables with execute-never (`XN`) protection.
+- **Compensating Controls**: All base addresses are defined as unsigned hexadecimal constants (`0x...U`), strictly bounds-checked, and isolated behind physical zone partitions.
 
 ---
 
@@ -33,10 +34,10 @@ Because this is a bare-metal embedded system operating directly on bare ARM Cort
 - **Source Code Instance**:
   ```c
   __asm__ volatile("dmb" ::: "memory");
-  __asm__ volatile("wfe");
+  __asm__ volatile("wfe" ::: "memory");
   __asm__ volatile("mrc p15, 0, %0, c9, c13, 0" : "=r"(cycles));
   ```
-- **Rationale**: ARMv7-A architectural instructions for cache/memory barriers (`DMB`, `DSB`, `ISB`), inter-core signaling (`SEV`, `WFE`), and Performance Monitor Unit coprocessor registers (`CP15 c9`) cannot be expressed in standard C syntax.
+- **Rationale**: ARMv7-A architectural instructions for cache/memory barriers (`DMB`, `DSB`, `ISB`), inter-core signaling (`SEV`, `WFE`, `YIELD`), and Performance Monitor Unit coprocessor registers (`CP15 c9`) cannot be expressed in standard C syntax.
 - **Compensating Controls**: All assembly instructions are encapsulated in strictly typed static inline wrapper functions with clobber lists ensuring register allocator preservation.
 
 ---
@@ -55,15 +56,20 @@ Because this is a bare-metal embedded system operating directly on bare ARM Cort
 
 ---
 
-#### Exception DEV-04: Fixed-Width Type Inversion in Dual-Rail Data Structures
+#### Exception DEV-04: Bitwise Operations for Checksums, Fault Modeling, and Hardware Masks
 - **Guideline**: Appropriate type operations and bitwise manipulation.
-- **Affected Files**: [`src/mailbox.c`](file:///c:/Users/hp/Desktop/TMR/src/mailbox.c), [`src/lockstep.c`](file:///c:/Users/hp/Desktop/TMR/src/lockstep.c).
+- **Affected Files**: [`src/mailbox.c`](file:///c:/Users/hp/Desktop/TMR/src/mailbox.c), [`src/flight_control.c`](file:///c:/Users/hp/Desktop/TMR/src/flight_control.c), [`src/amp.c`](file:///c:/Users/hp/Desktop/TMR/src/amp.c).
 - **Source Code Instance**:
   ```c
-  slot->inverted_val = ~payload;
+  /* CRC32 polynomial division (src/mailbox.c) */
+  crc = (crc >> 1) ^ 0xEDB88320U;
+  /* Simulated single-event upset bit toggling (src/flight_control.c) */
+  pwm ^= (1 << 9);
+  /* GIC interrupt distribution mask (src/amp.c) */
+  *gic_sgir = (1U << 24);
   ```
-- **Rationale**: Dual-rail redundancy relies on bitwise 1's complement representation to detect stuck-at silicon faults where memory cells are stuck at `0` or `1`.
-- **Compensating Controls**: Types are explicitly `uint32_t` or cast via standard fixed-width integer types; dual-rail consensus is verified by `(val ^ inv) == 0xFFFFFFFFU`.
+- **Rationale**: Data integrity checks (IEEE 802.3 CRC32), SEU cosmic ray fault simulation, and GIC interrupt distributor configuration fundamentally require bitwise shifts, masks, and XOR operations on fixed-width unsigned integers.
+- **Compensating Controls**: Operations are strictly performed on fixed-width unsigned types (`uint32_t`); bounds and shifts are verified with unit tests (`test_mailbox` and `test_diversity`).
 
 ---
 

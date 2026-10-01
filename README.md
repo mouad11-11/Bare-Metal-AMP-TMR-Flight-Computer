@@ -75,7 +75,7 @@ chmod +x quickstart.sh
 |   • Power-On Self-Test (CPU registers, March C- RAM, CRC32, golden voter)     |
 |   • Raw sensor data ingest & distribution across isolated zones               |
 |   • Inter-Processor Event (IPI) dispatch via SEV instruction                  |
-|   • Spin-lock polling on volatile core_done[4] with 500k cycle timeout        |
+|   • Spin-lock polling on padded core_done[4] with 500k cycle timeout          |
 |   • 2-out-of-3 (2oo3) Bounded Majority Voter (|Δ| <= 5 us)                    |
 |   • Core 0 Dual-Rail Software Lockstep voter cross-check                      |
 |   • Actuator command dispatch / Predefined Fail-Safe (-9999 us)               |

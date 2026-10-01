@@ -40,9 +40,9 @@ The fault injection campaign targets all fault domains identified in [`docs/FAUL
 
 | Test ID | Target Component | Injected Anomaly | Expected System Response | Observed Outcome | Verdict |
 |---|---|---|---|---|:---:|
-| **FI-SEU-001..032** | Node 1 (Core 1) | Bit flip in bit $[0 \dots 31]$ | 2oo3 Voter masks Node 1; command = mean(N2, N3) | MASKED (Node 1 Outlier) | **PASS** |
-| **FI-SEU-033..064** | Node 2 (Core 2) | Bit flip in bit $[0 \dots 31]$ | 2oo3 Voter masks Node 2; command = mean(N1, N3) | MASKED (Node 2 Outlier) | **PASS** |
-| **FI-SEU-065..096** | Node 3 (Core 3) | Bit flip in bit $[0 \dots 31]$ | 2oo3 Voter masks Node 3; command = mean(N1, N2) | MASKED (Node 3 Outlier) | **PASS** |
+| **FI-SEU-001..032** | Node 1 (Core 1) | Bit flip in bit $[0 \dots 31]$ | 2oo3 Voter masks Node 1; command = average(N2, N3) | MASKED (Node 1 Outlier) | **PASS** |
+| **FI-SEU-033..064** | Node 2 (Core 2) | Bit flip in bit $[0 \dots 31]$ | 2oo3 Voter masks Node 2; command = average(N1, N3) | MASKED (Node 2 Outlier) | **PASS** |
+| **FI-SEU-065..096** | Node 3 (Core 3) | Bit flip in bit $[0 \dots 31]$ | 2oo3 Voter masks Node 3; command = average(N1, N2) | MASKED (Node 3 Outlier) | **PASS** |
 | **FI-SENS-001** | Sensor Pipeline | Stuck-at +Max ($+1500$ ddeg/s) | Saturated PWM clamp to $2000$ µs | CLAMPED ($2000$ µs) | **PASS** |
 | **FI-SENS-002** | Sensor Pipeline | Stuck-at -Max ($-1500$ ddeg/s) | Saturated PWM clamp to $1000$ µs | CLAMPED ($1000$ µs) | **PASS** |
 | **FI-SENS-003** | Sensor Pipeline | Neutral Pitch ($0$ ddeg/s) | Neutral PWM command $1500$ µs | NOMINAL ($1500$ µs) | **PASS** |
@@ -55,8 +55,8 @@ The fault injection campaign targets all fault domains identified in [`docs/FAUL
 | **FI-STK-002** | Stack Monitor | Stack Canary Multi-Core Corrupt | Boundary check fails: instant FAILSAFE | CANARY FAILSAFE | **PASS** |
 | **FI-MBOX-001** | Mailbox Channel 1 | CRC32 Bit Inversion | Packet rejected; valid flag cleared | CRC INTEGRITY REJECT | **PASS** |
 | **FI-MBOX-002** | Mailbox Channel 2 | Stale Sequence ID ($k-1$) | Frame sequence desync; rejected | SEQUENCE REJECT | **PASS** |
-| **FI-LOCK-001** | Core 0 Arbiter | Voter ALU Dual-Rail Mismatch | Lockstep disparity detected; instant SAFE | LOCKSTEP FAILSAFE | **PASS** |
-| **FI-LOCK-002** | Core 0 Arbiter | Voter Self-Monitor Disparity | Arbiter state integrity fault; instant SAFE | LOCKSTEP FAILSAFE | **PASS** |
+| **FI-LOCK-001** | Core 0 Arbiter | Voter ALU Dual-Rail Mismatch | Lockstep disparity detected; instant SAFE | INTEGRITY_FAIL SAFE | **PASS** |
+| **FI-LOCK-002** | Core 0 Arbiter | Voter Self-Monitor Disparity | Arbiter state integrity fault; instant SAFE | INTEGRITY_FAIL SAFE | **PASS** |
 
 ---
 
@@ -71,7 +71,7 @@ During live execution on the quad-core ARM Cortex-A15 target (`make test-fi`), a
 6. `[FRAME #4]` SEU bit flip on Node 2 (Core 2) masked by 2oo3 voter.
 7. `[FRAME #5]` SEU bit flip on Node 3 (Core 3) masked by 2oo3 voter.
 8. `[FRAME #6]` Multi-core total disagreement routed to fail-safe state (`-9999` µs).
-9. `[FRAME #7]` Core 2 hardware lockup detected by watchdog spin counter and isolated.
+9. `[FRAME #7]` Core 2 hardware lockup detected by software watchdog; degraded 2oo2 quorum sustained between Cores 1 & 3 (`1507 us`).
 10. `[STATUS]` Full attitude pitch rate flight profile completed smoothly.
 11. `[STATUS]` Spatial memory zone boundaries intact across all 4 isolated cores.
 

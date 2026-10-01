@@ -80,6 +80,7 @@ def run_qemu_fault_campaign():
             try:
                 with open(log_file, "r") as f:
                     if "All spatial memory zones intact." in f.read():
+                        time.sleep(0.3)
                         break
             except Exception:
                 pass

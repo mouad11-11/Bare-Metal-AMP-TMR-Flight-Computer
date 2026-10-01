@@ -17,19 +17,19 @@ The system is architected to detect, isolate, and mask the following single-poin
 
 1. **Single Transient Bit Flip (SEU) in Compute Node State**:
    - Ionizing radiation strikes altering register values, program counter (PC), ALU flags, or arithmetic intermediates on any single worker core (Core 1, Core 2, or Core 3).
-   - *Mitigation*: The 2-out-of-3 bounded majority voter (|delta| <= 5 µs) isolates the divergent node and commands the mean/median of the two agreeing nodes.
+   - *Mitigation*: The 2-out-of-3 bounded majority voter (|delta| <= 5 µs) isolates the divergent node and commands the arithmetic mean of the two agreeing nodes: $(y_a + y_b) / 2$.
 2. **Single Bit Flip in Node Input or Output Memory Zones**:
    - Single Event Upset in dedicated physical RAM zones (`0x81000000`, `0x82000000`, or `0x83000000`).
-   - *Mitigation*: Redundant data integrity checks (`~value` complement check or CRC) and out-of-bounds plausibility rejection.
+   - *Mitigation*: Redundant data integrity checks via double-buffered IEEE 802.3 CRC32 mailboxes and actuator plausibility clamping (`[1000, 2000]` µs).
 3. **Single Node Execution Hang (Hardware Lockup / Infinite Loop)**:
    - Worker core trapped in an unresponsive state, unhandled exception, or infinite spin.
-   - *Mitigation*: Arbiter frame deadline watchdog counter / timer. The timed-out core is isolated, flagged in the fault mask, and excluded from quorum.
+   - *Mitigation*: Arbiter frame deadline software watchdog countdown (500,000 cycles). The timed-out core is isolated, flagged in the fault mask, and excluded from quorum; surviving nodes sustain degraded 2oo2 consensus.
 4. **Single Node Late, Missing, or Stale Sequence Output**:
    - Node finishes computation after the frame deadline has expired or delivers stale data from frame `k - 1`.
    - *Mitigation*: Monotonically incrementing `frame_id` token echoed by each worker node. Mismatched sequence numbers are rejected prior to voting.
 5. **Single Corrupted Mailbox Record**:
    - Bit-flip in dispatch pointer (`secondary_spin_addr`) or completion flag (`core_done[i]`).
-   - *Mitigation*: Strict memory ordering barriers (`DMB`/`DSB`/`ISB`), double-buffered sequence verification, and bounded handshake timeouts.
+   - *Mitigation*: Strict memory ordering barriers (`DMB`/`DSB`/`ISB`), double-buffered sequence verification, 64-byte cache-line padding, and bounded watchdog timeouts.
 
 ---
 
@@ -47,7 +47,7 @@ When fault multiplicity exceeds single-node containment limits or threatens arbi
    - *Action*: Exception trap drives `SAFE(EXCEPTION)` immediately, parks in fail-safe mode, and inhibits watchdog kicks.
 4. **Core 0 Critical Variable / Memory Corruption**:
    - Bit flips in voter state, node health counters, or page translation tables.
-   - *Action*: Duplicated storage / bitwise complement mismatch or periodic background memory scrubbing triggers `SAFE(INTEGRITY_FAIL)`.
+   - *Action*: Stack canary boundary corruption (`0xDEADBEEF`), sequence token mismatch, or lockstep ALU disparity triggers `SAFE(INTEGRITY_FAIL)`.
 5. **Frame Deadline Overrun**:
    - Execution time of the complete frame (dispatch, compute, vote, actuate) exceeds hard real-time cyclic budget.
    - *Action*: `SAFE(DEADLINE)`.
@@ -65,7 +65,7 @@ The following hazards cannot be mitigated by software-implemented fault toleranc
 2. **Common-Mode Software Faults (CMF)**:
    - Systematic software bugs in the shared flight control algorithm, voter logic, or compiler toolchain will replicate identically across Cores 1, 2, and 3, evading majority voting.
 3. **Common Sensor Ingestion Corruption**:
-   - An analog sensor failure or ADC bus corruption feeding identical erroneous data to Core 0 will be replicated identically across all three zones. (Addressed in Phase 3 by multi-channel independent input ingestion).
+   - An analog sensor failure or ADC bus corruption feeding identical erroneous data to Core 0 will be replicated identically across all three zones. (Triplicate sensor channel input cross-checking is implemented as a compile-time option via `SENSOR_INPUT_VOTING_ENABLED` in `src/config.h`).
 4. **Die-Level Common Hardware Disturbances**:
    - Complete loss of primary supply voltage, clock oscillator jitter/drift, thermal shutdown, or Single Event Latchup (SEL) short-circuiting the SoC substrate.
 5. **Simultaneous Correlated Multi-Bit Upsets (MBU)**:

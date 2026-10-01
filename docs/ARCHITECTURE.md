@@ -185,7 +185,7 @@ Candidate commands exceeding this bound are clamped to $\text{PWM}_{k-1} \pm 200
 To protect against transient ALU bit-flips on Core 0 during voter execution:
 - Rail A evaluates the primary voter algorithm.
 - Rail B independently re-calculates pairwise differences and executes an algebraic median formula (`algebraic_median3`).
-- If Rail A and Rail B disagree on output value or fault classification, Core 0 immediately trips `failsafe_trigger(REASON_LOCKSTEP_FAIL)`.
+- If Rail A and Rail B disagree on output value or fault classification, Core 0 immediately trips `failsafe_trigger(REASON_INTEGRITY_FAIL)`.
 
 ---
 
