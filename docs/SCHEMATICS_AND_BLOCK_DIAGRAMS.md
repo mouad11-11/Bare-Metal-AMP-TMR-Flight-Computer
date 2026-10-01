@@ -1,5 +1,5 @@
 # Architectural Schematics & Block Diagrams: Side-by-Side Comparison
-## Baseline Prototype (origin/main) vs. Hardened Architecture (HEAD / DO-178C DAL A)
+## Baseline Prototype (origin/main) vs. Hardened Architecture (HEAD)
 
 ---
 
@@ -25,10 +25,10 @@ flowchart TD
     end
 ```
 
-### Hardened Architecture (DO-178C DAL A)
+### Hardened Architecture
 ```mermaid
 flowchart TD
-    subgraph HARDENED["HARDENED ARCHITECTURE (HEAD - DO-178C DAL A)"]
+    subgraph HARDENED["HARDENED ARCHITECTURE (HEAD)"]
         S_TRIP["Triplicate Sensor Pre-Stage (P3.3)<br/>[CH 1, CH 2, CH 3 Pre-Vote Stage]"]
         -->|"Validated Packet + DMB"| C0_H["CORE 0: Dual-Rail Lockstep Arbiter (P2.3)<br/>• Primary Rail A (y) vs Inverted Rail B (~y)<br/>• Catches 100% Core 0 ALU bit flips<br/>• Chained CFI Signature Watchdog (Tree 3)<br/>• 4-Word Canaries (0xDEADBEEF) + Watermark<br/>• Cortex-A15 PMU Cycle Profiler"]
         

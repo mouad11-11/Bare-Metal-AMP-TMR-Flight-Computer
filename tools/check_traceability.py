@@ -30,7 +30,7 @@ def check_traceability():
         return 1
 
     print("==============================================================================")
-    print("  AUTOMATED DO-178C SAFETY TRACEABILITY AUDIT")
+    print("  AUTOMATED SAFETY REQUIREMENTS TRACEABILITY AUDIT")
     print("==============================================================================")
     print(f"[INFO] Auditing {len(rows)} safety requirement mappings from TRACEABILITY.md...\n")
 

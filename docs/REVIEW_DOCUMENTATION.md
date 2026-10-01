@@ -1,5 +1,5 @@
 # Bare-Metal AMP TMR Flight Computer: Comprehensive Architecture Review & Version Comparison Manual
-## Comparative Safety Evaluation: Baseline Prototype vs. Hardened DO-178C Level A Architecture
+## Comparative Safety Evaluation: Baseline Prototype vs. Hardened Architecture
 
 ---
 
@@ -8,13 +8,13 @@
 This document provides a comprehensive technical audit and side-by-side architectural comparison of the **Bare-Metal Asymmetric Multiprocessing (AMP) Triple Modular Redundancy (TMR) Flight Computer** across two development baselines:
 
 - **Baseline Prototype (`origin/main`)**: Initial conceptual demonstrator with basic 2oo3 voter averaging, ad-hoc `volatile` cross-core flags, flat physical memory, unpopulated exception vectors, and zero automated host test infrastructure.
-- **Hardened Architecture (`HEAD` / Current Version)**: Complete, production-grade avionics safety baseline engineered in accordance with **DO-178C Design Assurance Level (DAL) A**, **ECSS-E-ST-40C**, and **NASA/JPL Power of Ten** safety rules. Incorporates 6 safety decision trees, ARMv7-A Short-Descriptor MMU spatial partitioning, Core 0 Dual-Rail Software Lockstep, double-buffered CRC32 mailboxes, 100% branch/MC/DC coverage, and an automated 113-vector fault-injection campaign.
+- **Hardened Architecture (`HEAD` / Current Version)**: Complete, production-grade avionics safety baseline engineered in accordance with rigorous flight safety and high-reliability fault-tolerant architecture principles. Incorporates 6 safety decision trees, ARMv7-A Short-Descriptor MMU spatial partitioning, Core 0 Dual-Rail Software Lockstep, double-buffered CRC32 mailboxes, 100% branch/MC/DC coverage, and an automated 113-vector fault-injection campaign.
 
 ### Key Metrics Comparison Scorecard
 
 | Architectural Metric | Baseline Prototype (`origin/main`) | Hardened Architecture (`HEAD`) | Delta / Enhancement |
 |---|:---:|:---:|:---:|
-| **Safety Assurance Target** | Informal Prototype | **DO-178C DAL A / ECSS SIL 4** | Formal aerospace lifecycle |
+| **Reliability Goal** | Informal Prototype | **Production-Grade Fault-Tolerant** | Comprehensive lifecycle verification |
 | **Safety Decision Trees** | 0 (Ad-hoc `if/else`) | **6 Formal Decision Trees** (Trees 1–6) | Complete mathematical state machine |
 | **Voter Consensus Algorithm** | Simple Arithmetic Mean | **Median Selection (`median3`)** | Eliminates single-sample outlier drift |
 | **Chain Agreement Handling** | Undefined / Total Disagreement | **Degraded Median Consensus** | Prevents false fail-safe on chain noise |
@@ -363,7 +363,7 @@ The hardened repository introduces three new independent verification layers:
 |  Tier 1: Native C Host Unit Test Harnesses (11 Suites, 100% Branch Coverage)      |
 |  Tier 2: Automated End-to-End Fault-Injection Campaign (113 Vectors)             |
 |  Tier 3: Bare-Metal QEMU Live Flight Simulation & UART Assertion Suite (11 Asserts)|
-|  Tier 4: DO-178C DAL A Bi-Directional Traceability Audit (16 Requirements)        |
+|  Tier 4: Bi-Directional Safety Requirements Traceability Audit (16 Requirements)  |
 +-----------------------------------------------------------------------------------+
 ```
 
@@ -392,7 +392,7 @@ Executed via `make test-fi`:
 - **Campaign 07**: Master Arbiter ALU lockstep glitch injections.
 - **Verdict**: **113 test vectors evaluated, 222 assertions verified, 0 failures, 0 undetected erroneous outputs**.
 
-### 3. Automated DO-178C Traceability Checker (`tools/check_traceability.py`):
+### 3. Automated Requirements Traceability Checker (`tools/check_traceability.py`):
 Executed via `python tools/check_traceability.py`:
 - Parses [`docs/safety/TRACEABILITY.md`](file:///c:/Users/hp/Desktop/TMR/docs/safety/TRACEABILITY.md).
 - Confirms every Hazard (`HZ-01`..`07`) traces to a Safety Requirement (`SR-001`..`016`).
@@ -401,9 +401,9 @@ Executed via `python tools/check_traceability.py`:
 
 ---
 
-## 6. Complete DO-178C DAL A Safety Documentation Set
+## 6. Complete Flight Safety Documentation Set
 
-All safety artifacts required by DO-178C / ECSS are located under [`docs/safety/`](file:///c:/Users/hp/Desktop/TMR/docs/safety/):
+All system safety analysis artifacts are located under [`docs/safety/`](file:///c:/Users/hp/Desktop/TMR/docs/safety/):
 
 1. [`docs/safety/SAFETY_PLAN.md`](file:///c:/Users/hp/Desktop/TMR/docs/safety/SAFETY_PLAN.md): Software Safety Plan establishing lifecycle activities and roles.
 2. [`docs/safety/HAZARD_ANALYSIS.md`](file:///c:/Users/hp/Desktop/TMR/docs/safety/HAZARD_ANALYSIS.md): System Hazard Analysis & Risk Assessment (HARA).
@@ -450,11 +450,11 @@ All safety artifacts required by DO-178C / ECSS are located under [`docs/safety/
 | `tests/fi/test_fault_injection.c` | Tests | Added | Native fault injection engine executing 113 discrete fault vectors |
 | `tests/fi/run_fault_campaign.py` | Script | Added | End-to-end automated fault campaign runner (Native + QEMU) |
 | `tests/check_uart_output.py` | Script | Added | Bare-metal QEMU simulation telemetry assertion validator |
-| `tools/check_traceability.py` | Tool | Added | Automated DO-178C requirement-to-test traceability matrix auditor |
-| `docs/safety/*.md` (9 files) | Safety | Added | Complete DO-178C DAL A / ECSS safety documentation package |
+| `tools/check_traceability.py` | Tool | Added | Automated requirement-to-test traceability matrix auditor |
+| `docs/safety/*.md` (9 files) | Safety | Added | Complete flight safety analysis and architecture documentation package |
 | `docs/IPC_PROTOCOL.md` | Docs | Added | Inter-processor communication, mailbox layout, and barrier rules |
 | `docs/MEMORY_PROTECTION.md` | Docs | Added | Spatial MMU translation table specifications and permission matrix |
-| `docs/MISRA_DEVIATIONS.md` | Docs | Added | Formal MISRA C:2012 / SEI CERT C deviation catalog and NASA rules |
+| `docs/CODING_GUIDELINES.md` | Docs | Added | Formal defensive C coding guidelines catalog and rules |
 | `docs/COVERAGE.md` | Docs | Added | 100% Statement, Branch, and MC/DC structural coverage report |
 | `docs/FI_REPORT.md` | Docs | Added | 113-vector fault-injection campaign results report |
 | `docs/PORTING_TO_SAFETY_MCU.md`| Docs | Added | Migration roadmap to lockstep silicon (Cortex-R5F, TMS570, AURIX) |

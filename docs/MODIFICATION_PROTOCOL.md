@@ -1,16 +1,16 @@
 # Software Modification & Configuration Management Protocol (SMP)
 ## Bare-Metal AMP TMR Flight Computer System
-### Applicable Standards: DO-178C Section 7 (Software Configuration Management) / DO-254 / ECSS-Q-ST-80C
+### Software Configuration Management & Rigorous Change Control Protocol
 
 ---
 
 ## 1. Executive Summary & Purpose
 
-In safety-critical avionics software (DO-178C DAL A), code cannot be modified ad-hoc. Every modification—whether a bug fix, algorithm optimization, or hardware adaptation—must follow a formal, documented, and deterministic **Software Modification Protocol (SMP)**.
+In safety-critical avionics software (Safety-Critical Flight Software), code cannot be modified ad-hoc. Every modification—whether a bug fix, algorithm optimization, or hardware adaptation—must follow a formal, documented, and deterministic **Software Modification Protocol (SMP)**.
 
 This protocol establishes:
 1. **The Operational Git Repository Transition Protocol**: How the repository baseline is structured, tagged, and published across versions.
-2. **The 6-Phase DO-178C Change Lifecycle**: The mandatory engineering steps required before any modification can be committed or merged into the flight baseline.
+2. **The 6-Phase Change Lifecycle**: The mandatory engineering steps required before any modification can be committed or merged into the flight baseline.
 
 ---
 
@@ -39,14 +39,14 @@ To establish the two-version portfolio layout (`main` as hardened flagship, `v1.
 
 ---
 
-## 3. Part B: The 6-Phase DO-178C DAL A Modification Lifecycle
+## 3. Part B: The 6-Phase Modification Lifecycle
 
 Every future modification to the flight computer must progress through the following six sequential engineering gates:
 
 ```mermaid
 flowchart LR
     G1["1. Change Request<br/>& Hazard Impact"] --> G2["2. Safety Req<br/>Allocation (SR-xxx)"]
-    G2 --> G3["3. MISRA C:2012<br/>Implementation"]
+    G2 --> G3["3. Defensive C<br/>Implementation"]
     G3 --> G4["4. Multi-Tier<br/>Verification"]
     G4 --> G5["5. Traceability<br/>Audit Tool"]
     G5 --> G6["6. Peer Review<br/>& PR Merge"]
@@ -77,12 +77,12 @@ flowchart LR
 ---
 
 ### Phase 3: Implementation & Defensive Coding Standards
-1. **MISRA C:2012 & SEI CERT C Adherence**:
+1. **Defensive C Coding Guidelines Adherence**:
    - Zero dynamic memory allocation (`malloc`, `free`, `calloc`).
    - Zero recursion, zero variable-length arrays (VLAs), zero `setjmp`/`longjmp`.
    - Integer/fixed-point arithmetic only (no floating point in the safety path).
    - All loops bounded by provable static constants (`WATCHDOG_MAX_CYCLES`).
-2. **NASA/JPL "Power of Ten" Compliance**:
+2. **Safety-Critical Coding Rules Compliance**:
    - Functions restricted to $\le 60$ lines.
    - Minimal variable scope; check all return values.
    - Saturated arithmetic helpers (`safe_math.h`) used for all additions, subtractions, and divisions.

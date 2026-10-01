@@ -2,15 +2,11 @@
 
 [![Target: ARM Cortex-A15](https://img.shields.io/badge/Target-ARM%20Cortex--A15-blue.svg)](https://developer.arm.com/)
 [![Emulation: QEMU vexpress-a15](https://img.shields.io/badge/Emulation-QEMU%20vexpress--a15-green.svg)](https://www.qemu.org/)
-[![Safety: DO-178C DAL A](https://img.shields.io/badge/Safety%20Standard-DO--178C%20Level%20A-red.svg)]()
-[![Space: ECSS-Q-ST-80C](https://img.shields.io/badge/Space%20Standard-ECSS--Q--ST--80C-blue.svg)]()
-[![Branch Coverage: 100%](https://img.shields.io/badge/Branch%20Coverage-100%25-brightgreen.svg)](docs/COVERAGE.md)
-[![Fault Injection: 113/113 Passed](https://img.shields.io/badge/Fault%20Injection-113%2F113%20Passed-success.svg)](docs/FI_REPORT.md)
-[![Zero Malloc: MISRA C:2012](https://img.shields.io/badge/Dynamic%20Alloc-0%20Bytes%20(MISRA%20C%3A2012)-orange.svg)](docs/MISRA_DEVIATIONS.md)
+
 [![CI](https://github.com/mouad11-11/Bare-Metal-AMP-TMR-Flight-Computer/actions/workflows/ci.yml/badge.svg)](https://github.com/mouad11-11/Bare-Metal-AMP-TMR-Flight-Computer/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
-A safety-critical **flight computer architecture** implementing **Software-Implemented Fault Tolerance (SIFT)** using **Triple Modular Redundancy (TMR)** on a bare-metal quad-core **ARM Cortex-A15** processor (`vexpress-a15`), engineered to **DO-178C Design Assurance Level A (DAL A)** and **ECSS-Q-ST-80C** high-reliability standards.
+A safety-critical **flight computer architecture** implementing **Software-Implemented Fault Tolerance (SIFT)** using **Triple Modular Redundancy (TMR)** on a bare-metal quad-core **ARM Cortex-A15** processor (`vexpress-a15`), engineered for high reliability.
 
 The system utilizes **Asymmetric Multiprocessing (AMP)** to statically pin isolated flight control tasks across 4 physical CPU cores without operating system overhead, targeting deterministic worst-case execution time (WCET), hardware spatial isolation, and zero dynamic memory allocation.
 
@@ -18,11 +14,11 @@ The system utilizes **Asymmetric Multiprocessing (AMP)** to statically pin isola
 
 ## 🚀 Engineering Evolution Scorecard (v1.0 Prototype vs. v2.0 Hardened)
 
-This repository showcases the rigorous engineering evolution of a flight-critical avionics system, progressing from an educational prototype into a production-grade DO-178C DAL A hardened architecture.
+This repository showcases the rigorous engineering evolution of a flight-critical avionics system, progressing from an educational prototype into a production-grade hardened fault-tolerant architecture.
 
 | Engineering Domain | Baseline Prototype (`v1.0-prototype`) | Hardened Architecture (`v2.0-hardened` / `main`) | Verification Proof |
 |---|---|---|:---:|
-| **Target Standard** | Educational demonstrator | **DO-178C DAL A / ECSS-E-ST-40C** | [Traceability Matrix](docs/safety/TRACEABILITY.md) |
+| **Reliability Goal** | Educational demonstrator | **Production-Grade Fault-Tolerant** | [Traceability Matrix](docs/safety/TRACEABILITY.md) |
 | **Voter Mechanism** | Raw arithmetic mean (susceptible to outliers) | **2oo3 Median Voter + Chain Ambiguity Resolution** | `T-VOTE-001..009` (100% Branch) |
 | **Health Latching** | Stateless (faulty core re-enters next frame) | **Leaky-Bucket ($N=3, M=100$) Permanent Latch-Out** | `T-HLTH-001..004` (100% Branch) |
 | **Execution Supervision**| Unbounded spin-waits (can freeze CPU) | **Deadline Supervision (500k cycles) + CFI Tokens** | `T-SUP-001..003` (100% Branch) |
@@ -31,12 +27,12 @@ This repository showcases the rigorous engineering evolution of a flight-critica
 | **Memory Protection** | Flat memory model (all cores RWX) | **ARMv7-A Short-Descriptor MMU + XN Partitions** | `T-MMU-001..003` (100% Branch) |
 | **Inter-Core IPC** | Volatile shared memory (race conditions) | **Double-Buffered CRC32 Mailboxes + Sequences** | `T-MBOX-001..004` (100% Branch) |
 | **Arbiter Redundancy**| Core 0 is Single Point of Failure (SPOF) | **Dual-Rail Software Lockstep + Inverted Arithmetic** | `T-LOCK-001..003` (100% Branch) |
-| **Dynamic Memory** | Zero `malloc` | **Zero `malloc` (Statically mapped partitions)** | MISRA C:2012 Rule 21.3 |
+| **Dynamic Memory** | Zero `malloc` | **Zero `malloc` (Statically mapped partitions)** | Deterministic Static Allocation |
 | **Branch Coverage** | Untested on host (0%) | **100.00% Branch Coverage across 11 Test Suites** | `make test-host` (gcov) |
 | **Fault Injection** | Manual 7-frame demo | **113-Vector Automated Fault-Injection Campaign** | `make test-fi` (0 Failures) |
 
 > 📌 **Repository Branch Navigation**:
-> - **Active Flagship (`main`)**: The DO-178C Level A hardened architecture with all safety mechanisms and verification suites.
+> - **Active Flagship (`main`)**: The hardened fault-tolerant architecture with all safety mechanisms and verification suites.
 > - **Baseline Archive ([`v1.0-prototype`](https://github.com/mouad11-11/Bare-Metal-AMP-TMR-Flight-Computer/tree/v1.0-prototype))**: The original educational baseline prototype (commit `b9975e9`), preserved permanently for historical comparison.
 > - **Comparison Documentation**: See [`docs/REVIEW_DOCUMENTATION.md`](docs/REVIEW_DOCUMENTATION.md) for the full 700+ line technical breakdown and side-by-side analysis.
 > - **Architectural Schematics**: See [`docs/SCHEMATICS_AND_BLOCK_DIAGRAMS.md`](docs/SCHEMATICS_AND_BLOCK_DIAGRAMS.md) for side-by-side ASCII and block diagrams.
@@ -172,7 +168,7 @@ qemu-system-arm -M vexpress-a15 -cpu cortex-a15 -smp 4 -nographic \
 
 ## 🛡️ Limitations and Threat Model
 
-This project is an **architectural and algorithmic demonstrator** developed under the rigorous software engineering principles of DO-178C Level A and ECSS-E-ST-40C. 
+This project is an **architectural and algorithmic demonstrator** developed under rigorous software engineering principles for safety-critical flight avionics. 
 
 ### Covered Threats & Fault Mitigation
 - **Transient Single Event Upsets (SEUs)**: Single-bit flips in compute node ALU registers, memory words, and mailbox payloads are transparently masked by the 2oo3 median voter.
@@ -196,7 +192,7 @@ The project features a multi-tiered verification pipeline combining host unit te
 |---|---|---|
 | `make test-host` | Native C Host Unit Harness (Voter, Health, Failsafe, Supervision, POST, Math, MMU, Lockstep, Mailbox, PMU, Diversity) | **100% Branch Coverage**, MC/DC truth tables |
 | `make test-fi` | Automated End-to-End Fault-Injection Campaign (113 vectors across 7 categories) | **0 Undetected Erroneous Outputs**, 11/11 QEMU assertions |
-| `python tools/check_traceability.py` | DO-178C DAL A Life-Cycle Bi-Directional Traceability Audit | **16/16 Safety Requirements Verified**, zero orphans |
+| `python tools/check_traceability.py` | Requirements Life-Cycle Bi-Directional Traceability Audit | **16/16 Safety Requirements Verified**, zero orphans |
 | `python tests/check_uart_output.py` | Live QEMU Bare-Metal UART Telemetry Assertion Suite | **11/11 Telemetry Verdict Assertions Passing** |
 | `make all` | Cross-compilation for ARM Cortex-A15 bare-metal target | Clean build, **0 warnings** (`-Wall -Wextra -Werror`) |
 
@@ -231,11 +227,11 @@ The project features a multi-tiered verification pipeline combining host unit te
 │   ├── DISCREPANCIES.md        # Audit discrepancies and design reconciliations
 │   ├── IPC_PROTOCOL.md         # Inter-Processor Communication protocol and barrier rules
 │   ├── MEMORY_PROTECTION.md    # Spatial MMU translation tables, access permissions, and XN
-│   ├── MISRA_DEVIATIONS.md     # MISRA C:2012 / SEI CERT C deviation catalog with rationale
+│   ├── CODING_GUIDELINES.md    # Defensive C coding guidelines deviation catalog with rationale
 │   ├── COVERAGE.md             # 100% Statement, Branch, and MC/DC structural coverage report
 │   ├── FI_REPORT.md            # Exhaustive 113-vector fault injection campaign report
 │   ├── PORTING_TO_SAFETY_MCU.md# Porting roadmap to lockstep silicon (Cortex-R5F, TMS570, AURIX)
-│   └── safety/                 # DO-178C DAL A / ECSS Safety Documentation Set
+│   └── safety/                 # Flight Safety Documentation Set
 │       ├── SAFETY_PLAN.md      # Software Safety Plan (SSP)
 │       ├── HAZARD_ANALYSIS.md  # System Hazard Analysis and Risk Assessment (HARA)
 │       ├── SAFETY_REQUIREMENTS.md # Formal numbered requirements (SR-001..SR-016)
@@ -250,7 +246,7 @@ The project features a multi-tiered verification pipeline combining host unit te
 │   ├── fi/                     # Automated fault-injection campaign harness and runner
 │   └── check_uart_output.py    # QEMU UART simulation output validator (11 assertions)
 ├── tools/
-│   └── check_traceability.py   # Automated DO-178C traceability matrix validator
+│   └── check_traceability.py   # Automated requirements traceability matrix validator
 ├── linker.ld                   # Linker script defining System partition, stacks, and Zone origins
 ├── Makefile / CMakeLists.txt   # Dual synchronized build systems
 ├── quickstart.bat / .sh        # Turnkey launchers for Windows and Linux/WSL

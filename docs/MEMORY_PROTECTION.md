@@ -5,7 +5,7 @@
 
 ### 1. Spatial Partitioning Principles
 
-Under DO-178C Level A and ECSS-E-ST-40C standards, software components with different criticality levels or independent redundant channels must be physically isolated to prevent fault propagation (spatial freedom from interference).
+In safety-critical avionics architecture, software components with independent redundant channels must be strictly isolated to prevent fault propagation (spatial freedom from interference).
 
 In the Bare-Metal AMP TMR Flight Computer, spatial memory isolation is achieved using ARMv7-A Virtual Memory System Architecture (VMSA) with Short-Descriptor 1 MB section translation tables. Each of the four Cortex-A15 processor cores operates with its own distinct translation table pointed to by `TTBR0` (Translation Table Base Register 0).
 

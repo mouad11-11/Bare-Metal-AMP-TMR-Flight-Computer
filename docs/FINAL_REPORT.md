@@ -1,6 +1,6 @@
 # Final Hardening & Safety Engineering Report (P3.5)
 ## Bare-Metal AMP TMR Flight Computer System
-### Verification under DO-178C Level A / ECSS-E-ST-40C / NASA Power of Ten
+### High-Reliability Fault-Tolerant Architecture Verification
 
 ---
 
@@ -11,7 +11,7 @@ This report concludes the comprehensive safety hardening program for the Bare-Me
 All phases of the hardening specification have been completed:
 - **Phase 1 (Correctness & Safety Fundamentals)**: 64-bit safe math, complete ARMv7-A exception vector table, fail-safe reason codes, stack boundary canaries, 2oo3 median consensus with chain resolution, frame deadline supervision, power-on self-test (POST), and memory barrier hardening.
 - **Phase 2 (Isolation, Integrity & Verification Depth)**: ARMv7-A Short-Descriptor MMU spatial partitioning, Core 0 Dual-Rail Software Lockstep, double-buffered CRC32 mailboxes, and an automated 113-vector fault-injection campaign.
-- **Phase 3 (Process & Platform Readiness)**: ARM Cortex-A15 PMU WCET profiling, design diversity groundwork, triplicate sensor cross-checking, complete DO-178C DAL A safety documentation set (`docs/safety/`), and automated traceability verification.
+- **Phase 3 (Process & Platform Readiness)**: ARM Cortex-A15 PMU WCET profiling, design diversity groundwork, triplicate sensor cross-checking, complete flight safety documentation set (`docs/safety/`), and automated traceability verification.
 
 ```
 +-----------------------------------------------------------------------------+
@@ -73,7 +73,7 @@ The 7 baseline boot-time fault tolerance tests remain 100% compliant with their 
 
 ### 5. Resolution of Open Questions
 
-1. **Target Standard**: Formalized to **DO-178C Level A** and **ECSS-E-ST-40C** high-reliability principles.
+1. **Target Reliability**: Formalized to production-grade high-reliability fault-tolerant principles.
 2. **Real Hardware Path**: Evaluated and documented in [`docs/PORTING_TO_SAFETY_MCU.md`](PORTING_TO_SAFETY_MCU.md), prioritizing ARM Cortex-R5F (TI TMS570) and Infineon AURIX TC3xx.
 3. **Plausibility & Rate Limits**: Configured in `src/config.h`: `PWM_MIN_US = 1000`, `PWM_MAX_US = 2000`, `PWM_MAX_STEP_US = 200`.
 

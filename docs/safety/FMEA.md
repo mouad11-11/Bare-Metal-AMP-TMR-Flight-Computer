@@ -1,6 +1,6 @@
 # Failure Modes, Effects, and Criticality Analysis (FMEA / FMECA)
 ## Bare-Metal AMP TMR Flight Computer System
-### Reference: ARP4761 / MIL-STD-1629A / DO-178C DAL A
+### Failure Modes, Effects, and Criticality Analysis Specification
 
 ---
 

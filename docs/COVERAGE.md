@@ -1,11 +1,11 @@
 # Structural Code Coverage & MC/DC Verification Report
-## Verification under DO-178C Level A (100% Statement, Branch, and MC/DC Coverage)
+## Comprehensive Structural Coverage Analysis (100% Statement, Branch, and MC/DC Coverage)
 
 ---
 
 ### 1. Verification Objectives & Methodology
 
-Under **DO-178C Section 6.4.4.2 (Structural Coverage Analysis)**, software of Design Assurance Level (DAL) A requires:
+For maximum verification rigor, safety-critical flight software requires:
 1. **100% Statement Coverage**: Every executable statement has been invoked at least once.
 2. **100% Branch / Decision Coverage**: Every entry and exit point has been invoked, and every decision has taken all possible outcomes.
 3. **Modified Condition / Decision Coverage (MC/DC)**: Each condition in a multi-condition decision has been shown to independently affect the decision's outcome.

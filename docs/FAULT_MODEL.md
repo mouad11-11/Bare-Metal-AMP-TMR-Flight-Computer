@@ -3,7 +3,7 @@
 **Document Version:** 1.0  
 **Project:** Bare-Metal AMP TMR Flight Computer  
 **Target Platform:** Quad-Core ARM Cortex-A15 MPCore (`vexpress-a15`)  
-**Safety Classification:** DO-178C Level A / ECSS Architecture Demonstrator  
+**Safety Classification:** High-Reliability Fault-Tolerant Architecture Demonstrator  
 
 ---
 

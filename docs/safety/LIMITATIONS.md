@@ -1,6 +1,6 @@
 # System Limitations & Safety Boundary Constraints
 ## Bare-Metal AMP TMR Flight Computer System
-### Reference: DO-178C Section 11.2 / ARP4761
+### Safety Boundary Constraints & Technical Scope
 
 ---
 
@@ -25,8 +25,8 @@ In strict accordance with professional engineering integrity standards, this doc
 #### 3. Single-Die Silicon Sharing
 - All four Cortex-A15 cores reside on a single monolithic silicon die.
 - Although isolated through spatial MMU page tables, catastrophic physical damage to the die (power rail short-circuit, severe thermal runaway) would compromise all four cores simultaneously.
-- For manned aerospace flight control (DO-178C DAL A), physical redundancy across 3 physically distinct microcontrollers or dissimilar boards is mandated.
+- For manned aerospace flight control (Safety-Critical Flight Control), physical redundancy across 3 physically distinct microcontrollers or dissimilar boards is mandated.
 
 #### 4. Compliance and Certification Status
-- This project implements the architectural principles, defensive programming rules (MISRA C:2012, NASA Power of Ten), and verification artifacts (100% MC/DC, fault injection) required by DO-178C Level A and ECSS-E-ST-40C.
+- This project implements the architectural principles, defensive programming rules, and verification artifacts (100% MC/DC, fault injection) required for high-reliability flight software.
 - **Certification Statement**: This project serves as an **advanced architectural demonstrator**. No airworthiness certification (FAA/EASA TSO or STC) has been applied for or granted.

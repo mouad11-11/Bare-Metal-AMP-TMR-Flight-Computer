@@ -1,5 +1,5 @@
 # Exhaustive Fault-Injection Campaign Report (FI-CAMPAIGN)
-## Verification of Software-Implemented Fault Tolerance (SIFT) under DO-178C / ECSS Standards
+## Verification of Software-Implemented Fault Tolerance (SIFT) in Flight-Critical Avionics
 
 ---
 

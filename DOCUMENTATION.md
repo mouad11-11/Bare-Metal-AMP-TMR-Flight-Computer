@@ -2,7 +2,7 @@
 
 **Target Platform:** ARM Cortex-A15 Quad-Core (`vexpress-a15`)  
 **Architecture:** Asymmetric Multiprocessing (AMP) • Software-Implemented Fault Tolerance (SIFT) • Triple Modular Redundancy (TMR)  
-**Safety Philosophy:** DO-178C Level A / ECSS High-Reliability Avionics Paradigm  
+**Safety Philosophy:** High-Reliability Fault-Tolerant Avionics Architecture  
 **Execution Environment:** Pure Bare-Metal (No OS, No RTOS, No Kernel Scheduler)  
 
 ---
@@ -25,7 +25,7 @@ In a conventional commercial architecture running a real-time operating system (
 | **Hardware Implementation** | 3 to 4 physically separate ASIC/FPGA boards | 1 COTS Quad-Core SoC (ARM Cortex-A15) |
 | **Size, Weight, Power, and Cost (SWaP-C)** | High (heavy cabling, multi-chassis power) | Optimized (minimal footprint, single silicon die) |
 | **Common-Mode Failure Resistance** | Physical board isolation | Spatial memory partitioning & private stacks |
-| **Inter-Core Synchronization Jitter** | Discrete bus latency (CAN/MIL-STD-1553: milliseconds) | Cache-coherent architectural events (`SEV`/`WFE`: nanoseconds) |
+| **Inter-Core Synchronization Jitter** | Discrete bus latency (Discrete avionics bus latency: milliseconds) | Cache-coherent architectural events (`SEV`/`WFE`: nanoseconds) |
 | **Operating System Overhead** | OS scheduling, context-switch jitter, mutex locks | Zero (deterministic bare-metal, lock-free) |
 | **Actuator Protection** | Physical voter relay | Bounded mathematical voter + Fail-Safe state |
 
@@ -290,7 +290,7 @@ During the implementation and hardening of this bare-metal multi-core flight com
 
 ### 3.5 Bounded Hardware Watchdog & Unresponsive Node Isolation
 - **Symptom**: If an SEU causes a worker core to jump to an invalid address or enter an infinite loop (Test 7), an unhardened arbiter would spin forever waiting for `core_done[core_id]`, freezing the flight computer.
-- **Root Cause**: Bare-metal spin-waits without timeout bounds violate DO-178C hard real-time requirements.
+- **Root Cause**: Bare-metal spin-waits without timeout bounds violate deterministic hard real-time requirements.
 - **Resolution**: Implemented a finite loop-counter watchdog timer in [`src/amp.c`](src/amp.c):
   ```c
   #define AMP_TIMEOUT_CYCLES  5000000
@@ -416,7 +416,7 @@ python live_monitor.py
 ## 7. Standards Compliance & Aerospace Engineering Takeaways
 
 1. **Deterministic Execution**: Without an OS or interrupt jitter, every flight loop executes with bounded worst-case execution time (WCET).
-2. **DO-178C Level A Objectives**: Addresses spatial partitioning, structural coverage, stack monitoring, and single-event fault mitigation.
+2. **High-Reliability Architecture Objectives**: Addresses spatial partitioning, structural coverage, stack monitoring, and single-event fault mitigation.
 3. **No Dynamic Allocation**: No `malloc()`, `free()`, or dynamic heap fragmentation. All memory is statically mapped at compile time.
 4. **COTS Processor Viability**: Proves that consumer multi-core ARM chips can be hardened via software to achieve the fault-tolerance guarantees of specialized radiation-hardened hardware.
 

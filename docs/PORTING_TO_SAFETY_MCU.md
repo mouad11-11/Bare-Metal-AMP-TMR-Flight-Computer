@@ -5,7 +5,7 @@
 
 ### 1. Executive Summary & Purpose
 
-The Bare-Metal Asymmetric Multiprocessing (AMP) Triple Modular Redundancy (TMR) demonstrator is currently implemented on an ARM Cortex-A15 MPCore (`vexpress-a15`) simulated in QEMU. While Cortex-A series processors excel in high-throughput computation, safety-critical aerospace and automotive systems (DO-178C DAL A, ISO 26262 ASIL D, ECSS SIL 4) typically target dedicated safety microcontrollers such as:
+The Bare-Metal Asymmetric Multiprocessing (AMP) Triple Modular Redundancy (TMR) demonstrator is currently implemented on an ARM Cortex-A15 MPCore (`vexpress-a15`) simulated in QEMU. While Cortex-A series processors excel in high-throughput computation, safety-critical aerospace and automotive systems (High-Reliability Flight Systems) typically target dedicated safety microcontrollers such as:
 - **Texas Instruments Hercules TMS570** (Dual Cortex-R4F/R5F hardware lockstep)
 - **Infineon AURIX TC3xx / TC4xx** (TriCore 6-core multi-lockstep)
 - **NXP S32K3 / S32Z / S32E** (Dual Cortex-M7 / Cortex-R52)

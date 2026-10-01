@@ -1,6 +1,6 @@
 # Software Safety Plan (SSP)
 ## Bare-Metal AMP TMR Flight Computer System
-### Applicable Standards: DO-178C (DAL A) / ECSS-E-ST-40C / ISO 26262 (ASIL D Reference)
+### High-Reliability Fault-Tolerant Lifecycle Plan
 
 ---
 
@@ -11,13 +11,13 @@ The target system is an attitude control demonstrator responsible for ingesting 
 
 ---
 
-### 2. Safety Lifecycle & Assurance Level
+### 2. Safety Lifecycle & Criticality Level
 
-In accordance with DO-178C Table A-1, the software is developed under **Design Assurance Level (DAL) A (Catastrophic)**, where erroneous or lost actuator commands could lead to catastrophic loss of vehicle control.
+The software is developed under the highest criticality classification, where erroneous or lost actuator commands could lead to catastrophic loss of vehicle control.
 
 ```
 +-----------------------------------------------------------------------------+
-|                          DO-178C DAL A LIFECYCLE                            |
+|                          HIGH-RELIABILITY SAFETY LIFECYCLE                            |
 |                                                                             |
 |  [System Hazard Analysis]                                                   |
 |          |                                                                  |
@@ -28,7 +28,7 @@ In accordance with DO-178C Table A-1, the software is developed under **Design A
 |  [Architectural Design: AMP TMR, Spatial MMU, Dual-Rail Lockstep]           |
 |          |                                                                  |
 |          v                                                                  |
-|  [Low-Level Source Implementation: C99, MISRA C:2012, NASA Power of Ten]    |
+|  [Low-Level Source Implementation: C99, Defensive Coding Rules]    |
 |          |                                                                  |
 |          v                                                                  |
 |  [Verification & Validation: 100% Branch/MCDC Coverage, Fault Injection]    |
@@ -61,5 +61,5 @@ In accordance with DO-178C Table A-1, the software is developed under **Design A
 ### 4. Software Safety Organization & Roles
 
 - **Safety Manager**: Authorizes Safety Plan, approves hazard analyses, and verifies safety case integrity.
-- **Lead Embedded Architect**: Enforces MISRA C:2012, NASA Power of Ten guidelines, and memory map isolation.
+- **Lead Embedded Architect**: Enforces defensive programming guidelines and memory map isolation.
 - **Verification Lead**: Develops host test harnesses, maintains coverage instrumentation, and executes fault injection campaigns.

@@ -1,6 +1,6 @@
 # Assumptions of Use (AoU) & System Operating Context
 ## Bare-Metal AMP TMR Flight Computer System
-### Reference: DO-178C Section 11.2 / ARP4754A / ISO 26262-10
+### System Operating Context & Operational Assumptions
 
 ---
 

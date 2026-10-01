@@ -2,7 +2,7 @@
 """
 Automated Fault-Injection Verification Campaign Runner (P3.1)
 Target: Bare-Metal AMP TMR Flight Computer (ARM Cortex-A15)
-DO-178C Level A / ECSS Fault-Tolerant Verification Harness
+High-Reliability Fault-Tolerant Verification Harness
 """
 
 import os

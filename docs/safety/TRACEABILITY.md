@@ -1,5 +1,5 @@
 # Bi-Directional Safety Traceability Matrix
-## DO-178C DAL A / ARP4754A Complete Life-Cycle Traceability
+## Complete Life-Cycle Requirements Traceability
 
 ---
 

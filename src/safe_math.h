@@ -8,7 +8,7 @@
 
 /**
  * @brief Saturating 32-bit signed addition.
- * Guarantees no signed integer overflow undefined behavior (C99 / MISRA C:2012 Rule 12.4).
+ * Guarantees no signed integer overflow undefined behavior.
  */
 static inline int32_t safe_add_i32(int32_t a, int32_t b) {
     int64_t res = (int64_t)a + (int64_t)b;
