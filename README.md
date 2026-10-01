@@ -1,10 +1,6 @@
 # Bare-Metal AMP TMR Flight Computer
 
-[![Target: ARM Cortex-A15](https://img.shields.io/badge/Target-ARM%20Cortex--A15-blue.svg)](https://developer.arm.com/)
-[![Emulation: QEMU vexpress-a15](https://img.shields.io/badge/Emulation-QEMU%20vexpress--a15-green.svg)](https://www.qemu.org/)
-
-[![CI](https://github.com/mouad11-11/Bare-Metal-AMP-TMR-Flight-Computer/actions/workflows/ci.yml/badge.svg)](https://github.com/mouad11-11/Bare-Metal-AMP-TMR-Flight-Computer/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
+[![Target: ARM Cortex-A15](https://img.shields.io/badge/Target-ARM%20Cortex--A15-blue.svg)](https://developer.arm.com/) [![Emulation: QEMU vexpress-a15](https://img.shields.io/badge/Emulation-QEMU%20vexpress--a15-green.svg)](https://www.qemu.org/) [![CI](https://github.com/mouad11-11/Bare-Metal-AMP-TMR-Flight-Computer/actions/workflows/ci.yml/badge.svg)](https://github.com/mouad11-11/Bare-Metal-AMP-TMR-Flight-Computer/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
 A safety-critical **flight computer architecture** implementing **Software-Implemented Fault Tolerance (SIFT)** using **Triple Modular Redundancy (TMR)** on a bare-metal quad-core **ARM Cortex-A15** processor (`vexpress-a15`), engineered for high reliability.
 
