@@ -78,12 +78,14 @@ dump: $(TARGET_ELF)
 	$(OBJDUMP) -d $< > tmr_flight_computer.asm
 
 test-host:
-	@echo [HOST-CC] tests/host/test_voter.c + src/voter.c
-	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/voter.c tests/host/test_voter.c -o $(TEST_HOST_BIN)
+	@echo [HOST-CC] tests/host/test_voter.c + src/voter.c + src/node_health.c + src/failsafe.c
+	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/voter.c $(SRC_DIR)/node_health.c $(SRC_DIR)/failsafe.c tests/host/test_voter.c -o $(TEST_HOST_BIN)
 	@echo [HOST-RUN] $(TEST_HOST_BIN)
 	$(TEST_HOST_BIN)
 	@echo [HOST-COVERAGE] voter.c
 	$(HOST_GCOV) -b -c tests/host/test_voter-voter.gcno
+	@echo [HOST-COVERAGE] node_health.c
+	$(HOST_GCOV) -b -c tests/host/test_voter-node_health.gcno
 	@echo [HOST-CC] tests/host/test_failsafe.c + src/failsafe.c
 	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/failsafe.c tests/host/test_failsafe.c -o $(TEST_FS_BIN)
 	@echo [HOST-RUN] $(TEST_FS_BIN)

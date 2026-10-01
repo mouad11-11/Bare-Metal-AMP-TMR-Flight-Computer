@@ -7,6 +7,7 @@
 #include "flight_control.h"
 #include "failsafe.h"
 #include "stack_monitor.h"
+#include "node_health.h"
 
 static void print_banner(void) {
     uart_puts("\n");
@@ -118,9 +119,12 @@ static void run_fault_tolerance_test_suite(void) {
 }
 
 int main(void) {
-    /* Step 1: Initialize PL011 UART console & stack canaries */
+    /* Step 1: Initialize PL011 UART console & safety subsystems */
     uart_init();
     stack_monitor_init();
+    failsafe_init();
+    node_health_init();
+    voter_reset_rate_limit(PWM_NEUTRAL_US);
     print_banner();
     print_system_info();
 

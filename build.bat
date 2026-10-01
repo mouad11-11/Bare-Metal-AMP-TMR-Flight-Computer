@@ -74,6 +74,10 @@ echo [CC] src\failsafe.c
 arm-none-eabi-gcc %CFLAGS% -c src\failsafe.c -o build\failsafe.o
 if %ERRORLEVEL% NEQ 0 exit /b 1
 
+echo [CC] src\node_health.c
+arm-none-eabi-gcc %CFLAGS% -c src\node_health.c -o build\node_health.o
+if %ERRORLEVEL% NEQ 0 exit /b 1
+
 echo [CC] src\stack_monitor.c
 arm-none-eabi-gcc %CFLAGS% -c src\stack_monitor.c -o build\stack_monitor.o
 if %ERRORLEVEL% NEQ 0 exit /b 1
@@ -83,7 +87,7 @@ arm-none-eabi-gcc %CFLAGS% -c src\main.c -o build\main.o
 if %ERRORLEVEL% NEQ 0 exit /b 1
 
 echo [LD] tmr_flight_computer.elf
-arm-none-eabi-gcc %CFLAGS% -T linker.ld -nostdlib -Wl,--build-id=none -Wl,--no-warn-rwx-segments build\startup.o build\uart.o build\amp.o build\voter.o build\flight_control.o build\failsafe.o build\stack_monitor.o build\main.o -o tmr_flight_computer.elf
+arm-none-eabi-gcc %CFLAGS% -T linker.ld -nostdlib -Wl,--build-id=none -Wl,--no-warn-rwx-segments build\startup.o build\uart.o build\amp.o build\voter.o build\flight_control.o build\failsafe.o build\node_health.o build\stack_monitor.o build\main.o -o tmr_flight_computer.elf
 if %ERRORLEVEL% NEQ 0 exit /b 1
 
 echo [OBJCOPY] tmr_flight_computer.bin
