@@ -52,6 +52,7 @@ TEST_SUP_BIN   := tests/host/test_supervision.exe
 TEST_POST_BIN  := tests/host/test_post.exe
 TEST_MATH_BIN  := tests/host/test_safe_math.exe
 TEST_MMU_BIN   := tests/host/test_mmu.exe
+TEST_LOCK_BIN  := tests/host/test_lockstep.exe
 
 .PHONY: all clean dump run test-host
 
@@ -128,6 +129,12 @@ test-host:
 	$(TEST_MMU_BIN)
 	@echo [HOST-COVERAGE] mmu.c
 	$(HOST_GCOV) -b -c tests/host/test_mmu-mmu.gcno
+	@echo [HOST-CC] tests/host/test_lockstep.c + src/lockstep.c + src/voter.c + src/node_health.c + src/failsafe.c
+	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/lockstep.c $(SRC_DIR)/voter.c $(SRC_DIR)/node_health.c $(SRC_DIR)/failsafe.c tests/host/test_lockstep.c -o $(TEST_LOCK_BIN)
+	@echo [HOST-RUN] $(TEST_LOCK_BIN)
+	$(TEST_LOCK_BIN)
+	@echo [HOST-COVERAGE] lockstep.c
+	$(HOST_GCOV) -b -c tests/host/test_lockstep-lockstep.gcno
 
 clean:
 	@if exist "$(BUILD_DIR)" rmdir /s /q "$(BUILD_DIR)"

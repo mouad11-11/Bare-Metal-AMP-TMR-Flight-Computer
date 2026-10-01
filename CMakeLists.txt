@@ -25,6 +25,7 @@ set(SRCS
     src/post.c
     src/stack_monitor.c
     src/mmu.c
+    src/lockstep.c
 )
 
 add_executable(tmr_flight_computer.elf ${SRCS})

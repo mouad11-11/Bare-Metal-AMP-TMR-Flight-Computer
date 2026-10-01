@@ -11,6 +11,7 @@
 #include "supervision.h"
 #include "post.h"
 #include "mmu.h"
+#include "lockstep.h"
 
 static void print_banner(void) {
     uart_puts("\n");
@@ -70,7 +71,12 @@ static voter_result_t execute_flight_frame(int32_t raw_sensor_reading, fault_inj
     int32_t out3 = zone_read_output(3);
 
     /* Core 0 executes Bounded 2oo3 Majority Gate */
-    return vote_2oo3(out1, out2, out3);
+    voter_result_t res = vote_2oo3(out1, out2, out3);
+
+    /* Core 0 Dual-Rail Software Lockstep Verification (Self-Monitoring) */
+    lockstep_verify_voter(out1, out2, out3, &res);
+
+    return res;
 }
 
 static void print_flight_frame_result(uint32_t frame_id, const char *scenario_name, int32_t raw_sensor, voter_result_t res) {
@@ -129,6 +135,7 @@ int main(void) {
     node_health_init();
     supervision_init();
     mmu_init_tables();
+    lockstep_init();
     voter_reset_rate_limit(PWM_NEUTRAL_US);
     print_banner();
     print_system_info();
