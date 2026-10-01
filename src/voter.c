@@ -24,19 +24,19 @@ voter_result_t vote_2oo3(int32_t y1, int32_t y2, int32_t y3) {
     if (pair12 && pair23 && pair13) {
         /* All three cores agree within tolerance bound */
         res.status = VOTE_UNANIMOUS;
-        res.final_pwm = (y1 + y2 + y3) / 3;
+        res.final_pwm = (int32_t)(((int64_t)y1 + (int64_t)y2 + (int64_t)y3) / 3);
     } else if (pair12 && !pair23 && !pair13) {
         /* Nodes 1 and 2 agree; Node 3 is an outlier */
         res.status = VOTE_MAJORITY_NODE3_MASKED;
-        res.final_pwm = (y1 + y2) / 2;
+        res.final_pwm = (int32_t)(((int64_t)y1 + (int64_t)y2) / 2);
     } else if (pair13 && !pair12 && !pair23) {
         /* Nodes 1 and 3 agree; Node 2 is an outlier */
         res.status = VOTE_MAJORITY_NODE2_MASKED;
-        res.final_pwm = (y1 + y3) / 2;
+        res.final_pwm = (int32_t)(((int64_t)y1 + (int64_t)y3) / 2);
     } else if (pair23 && !pair12 && !pair13) {
         /* Nodes 2 and 3 agree; Node 1 is an outlier */
         res.status = VOTE_MAJORITY_NODE1_MASKED;
-        res.final_pwm = (y2 + y3) / 2;
+        res.final_pwm = (int32_t)(((int64_t)y2 + (int64_t)y3) / 2);
     } else if (pair12 || pair23 || pair13) {
         /*
          * Boundary condition: Two pairs agree (e.g. Node 2 bridges Nodes 1 and 3).
@@ -44,13 +44,13 @@ voter_result_t vote_2oo3(int32_t y1, int32_t y2, int32_t y3) {
          */
         if (pair12 && (res.diff12 <= res.diff23 && res.diff12 <= res.diff13)) {
             res.status = VOTE_MAJORITY_NODE3_MASKED;
-            res.final_pwm = (y1 + y2) / 2;
+            res.final_pwm = (int32_t)(((int64_t)y1 + (int64_t)y2) / 2);
         } else if (pair13 && (res.diff13 <= res.diff12 && res.diff13 <= res.diff23)) {
             res.status = VOTE_MAJORITY_NODE2_MASKED;
-            res.final_pwm = (y1 + y3) / 2;
+            res.final_pwm = (int32_t)(((int64_t)y1 + (int64_t)y3) / 2);
         } else {
             res.status = VOTE_MAJORITY_NODE1_MASKED;
-            res.final_pwm = (y2 + y3) / 2;
+            res.final_pwm = (int32_t)(((int64_t)y2 + (int64_t)y3) / 2);
         }
     } else {
         /*

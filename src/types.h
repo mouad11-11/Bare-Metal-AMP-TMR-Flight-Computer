@@ -1,6 +1,11 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#if defined(__STDC_HOSTED__) && __STDC_HOSTED__ == 1
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+#else
 /* Standard fixed-width integer types for freestanding environment */
 typedef unsigned char       uint8_t;
 typedef unsigned short      uint16_t;
@@ -20,8 +25,10 @@ typedef signed int          ssize_t;
 #ifndef __cplusplus
 typedef enum { false = 0, true = 1 } bool;
 #endif
+#endif
 
 /* ARMv7-A Architectural Barrier and Event Primitives */
+#if defined(__arm__) || defined(__thumb__)
 static inline void dmb(void) {
     __asm__ volatile("dmb" ::: "memory");
 }
@@ -54,5 +61,15 @@ static inline uint32_t get_core_id(void) {
     uint32_t cpu = mpidr & 0xFF;
     return (cluster * 4) + cpu;
 }
+#else
+/* Host stub barriers for unit testing */
+static inline void dmb(void) { __asm__ volatile("" ::: "memory"); }
+static inline void dsb(void) { __asm__ volatile("" ::: "memory"); }
+static inline void isb(void) { __asm__ volatile("" ::: "memory"); }
+static inline void sev(void) { }
+static inline void wfe(void) { }
+static inline void wfi(void) { }
+static inline uint32_t get_core_id(void) { return 0; }
+#endif
 
 #endif /* TYPES_H */

@@ -12,6 +12,10 @@ build/
 !docs/baseline_output.txt
 qemu_*.txt
 *.tmp
+*.gcda
+*.gcno
+*.gcov
+tests/host/*.exe
 
 # Python artifacts
 __pycache__/

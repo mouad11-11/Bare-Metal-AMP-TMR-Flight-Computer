@@ -36,7 +36,18 @@ CFLAGS     := $(ARCH_FLAGS) -O2 -Wall -Wextra -ffreestanding -nostdlib -I$(SRC_D
 ASFLAGS    := $(ARCH_FLAGS) -I$(SRC_DIR) -g
 LDFLAGS    := -T linker.ld -nostdlib -Wl,--build-id=none -Wl,--no-warn-rwx-segments
 
-.PHONY: all clean dump run
+# Host Unit Testing & Coverage
+ifneq ($(wildcard D:/tools/w64devkit/bin/gcc.exe),)
+    HOST_CC   ?= D:/tools/w64devkit/bin/gcc.exe
+    HOST_GCOV ?= D:/tools/w64devkit/bin/gcov.exe
+else
+    HOST_CC   ?= gcc
+    HOST_GCOV ?= gcov
+endif
+
+TEST_HOST_BIN := tests/host/test_voter.exe
+
+.PHONY: all clean dump run test-host
 
 all: $(TARGET_ELF) $(TARGET_BIN)
 
@@ -64,9 +75,20 @@ $(TARGET_BIN): $(TARGET_ELF)
 dump: $(TARGET_ELF)
 	$(OBJDUMP) -d $< > tmr_flight_computer.asm
 
+test-host:
+	@echo [HOST-CC] tests/host/test_voter.c + src/voter.c
+	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/voter.c tests/host/test_voter.c -o $(TEST_HOST_BIN)
+	@echo [HOST-RUN] $(TEST_HOST_BIN)
+	$(TEST_HOST_BIN)
+	@echo [HOST-COVERAGE] voter.c
+	$(HOST_GCOV) -b -c tests/host/test_voter-voter.gcno
+
 clean:
 	@if exist "$(BUILD_DIR)" rmdir /s /q "$(BUILD_DIR)"
 	@if exist "$(TARGET_ELF)" del /f /q "$(TARGET_ELF)"
 	@if exist "$(TARGET_BIN)" del /f /q "$(TARGET_BIN)"
 	@if exist "tmr_flight_computer.asm" del /f /q "tmr_flight_computer.asm"
+	@if exist "tests\host\*.exe" del /f /q "tests\host\*.exe"
+	@if exist "tests\host\*.gc*" del /f /q "tests\host\*.gc*"
+	@if exist "*.gcov" del /f /q "*.gcov"
 	@echo Cleaned build artifacts.
