@@ -1,9 +1,12 @@
 #include "types.h"
+#include "config.h"
 #include "memory_map.h"
 #include "uart.h"
 #include "amp.h"
 #include "voter.h"
 #include "flight_control.h"
+#include "failsafe.h"
+#include "stack_monitor.h"
 
 static void print_banner(void) {
     uart_puts("\n");
@@ -115,8 +118,9 @@ static void run_fault_tolerance_test_suite(void) {
 }
 
 int main(void) {
-    /* Step 1: Initialize PL011 UART console */
+    /* Step 1: Initialize PL011 UART console & stack canaries */
     uart_init();
+    stack_monitor_init();
     print_banner();
     print_system_info();
 
@@ -166,6 +170,16 @@ int main(void) {
     uart_puts("\n[TEST 7] Simulating Core 2 Hardware Hang (Watchdog Timeout Verification)...\n");
     voter_result_t r7 = execute_flight_frame(25, FAULT_HANG_NODE2);
     print_flight_frame_result(7, "TEST 7: Core 2 Unresponsive -> Watchdog Timeout Fail-Safe", 25, r7);
+
+    /* Stack Canary & High-Water Mark Diagnostics */
+    uart_puts("\n[DIAG] Stack Canary & High-Water Mark Telemetry:\n");
+    for (uint32_t c = 0; c < 4; c++) {
+        bool canaries_ok = stack_canary_check_core(c);
+        uint32_t used = stack_get_high_water_mark(c);
+        uint32_t headroom = stack_get_headroom(c);
+        uart_printf("       Core %u: Canaries=%s, Peak Stack Used=%u B, Headroom=%u B\n",
+                    c, canaries_ok ? "INTACT" : "CORRUPTED", used, headroom);
+    }
 
     uart_puts("\n[STATUS] Flight computer completed mission profile smoothly.\n");
     uart_puts("[STATUS] All spatial memory zones intact. System entering standby.\n");

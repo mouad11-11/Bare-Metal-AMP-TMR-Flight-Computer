@@ -45,8 +45,9 @@ else
     HOST_GCOV ?= gcov
 endif
 
-TEST_HOST_BIN := tests/host/test_voter.exe
-TEST_FS_BIN   := tests/host/test_failsafe.exe
+TEST_HOST_BIN  := tests/host/test_voter.exe
+TEST_FS_BIN    := tests/host/test_failsafe.exe
+TEST_STACK_BIN := tests/host/test_stack_monitor.exe
 
 .PHONY: all clean dump run test-host
 
@@ -89,6 +90,12 @@ test-host:
 	$(TEST_FS_BIN)
 	@echo [HOST-COVERAGE] failsafe.c
 	$(HOST_GCOV) -b -c tests/host/test_failsafe-failsafe.gcno
+	@echo [HOST-CC] tests/host/test_stack_monitor.c + src/stack_monitor.c
+	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/stack_monitor.c tests/host/test_stack_monitor.c -o $(TEST_STACK_BIN)
+	@echo [HOST-RUN] $(TEST_STACK_BIN)
+	$(TEST_STACK_BIN)
+	@echo [HOST-COVERAGE] stack_monitor.c
+	$(HOST_GCOV) -b -c tests/host/test_stack_monitor-stack_monitor.gcno
 
 clean:
 	@if exist "$(BUILD_DIR)" rmdir /s /q "$(BUILD_DIR)"

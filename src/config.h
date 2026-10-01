@@ -45,6 +45,14 @@
 /* Software watchdog spin-loop timeout bound (cycles) */
 #define WATCHDOG_MAX_CYCLES         500000U
 
+/* Stack Canary and Sizing Definitions */
+#define STACK_TOTAL_SIZE            32768U
+#define STACK_PER_CORE_SIZE         8192U
+#define STACK_SVC_SIZE              6144U
+#define STACK_CANARY_VALUE          0xDEADBEEFU
+#define STACK_WATERMARK_VALUE       0xA5A5A5A5U
+#define STACK_CANARY_WORDS          4U
+
 /* Maximum number of recorded exception / fault entries per core */
 #define MAX_FAULT_RECORDS_PER_CORE  4
 

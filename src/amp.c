@@ -3,6 +3,8 @@
 #include "flight_control.h"
 #include "voter.h"
 #include "uart.h"
+#include "failsafe.h"
+#include "stack_monitor.h"
 
 void (* volatile secondary_spin_addr)(void) = NULL;
 volatile uint32_t core_done[4] = {0, 0, 0, 0};
@@ -83,13 +85,13 @@ void secondary_core_entry(void) {
     /* Execute deterministic flight control algorithm */
     int32_t pwm_out = flight_control_compute(core_id, sensor_in);
 
-    /*
-     * Spatial Partitioning:
-     * Core 1 writes exclusively to Zone 1 (0x81000004)
-     * Core 2 writes exclusively to Zone 2 (0x82000004)
-     * Core 3 writes exclusively to Zone 3 (0x83000004)
-     */
+    /* Spatial Partitioning: Core writes exclusively to its zone */
     zone_write_output(core_id, pwm_out);
+
+    /* Verify local stack canary integrity before reporting completion */
+    if (!stack_canary_check_core(core_id)) {
+        return; /* Fail silent upon stack exhaustion / boundary breach */
+    }
 
     /* Flag completion */
     dmb();
@@ -100,6 +102,12 @@ void secondary_core_entry(void) {
 
 bool amp_dispatch_and_wait(uint32_t *timed_out_mask) {
     if (timed_out_mask) *timed_out_mask = 0;
+
+    /* Verify Arbiter stack integrity prior to frame dispatch */
+    if (!stack_canary_check_core(0)) {
+        failsafe_trigger(REASON_INTEGRITY_FAIL);
+        return false;
+    }
 
     core_done[1] = 0;
     core_done[2] = 0;
@@ -134,6 +142,12 @@ bool amp_dispatch_and_wait(uint32_t *timed_out_mask) {
         if (!core_done[2]) mask |= (1 << 2);
         if (!core_done[3]) mask |= (1 << 3);
         if (timed_out_mask) *timed_out_mask = mask;
+        return false;
+    }
+
+    /* Post-frame stack canary audit across all cores */
+    if (!stack_canary_check_all()) {
+        failsafe_trigger(REASON_INTEGRITY_FAIL);
         return false;
     }
 
