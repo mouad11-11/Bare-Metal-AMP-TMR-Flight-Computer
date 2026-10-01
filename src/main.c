@@ -13,6 +13,7 @@
 #include "mmu.h"
 #include "lockstep.h"
 #include "mailbox.h"
+#include "pmu.h"
 
 static void print_banner(void) {
     uart_puts("\n");
@@ -41,6 +42,8 @@ static void print_system_info(void) {
 static voter_result_t execute_flight_frame(int32_t raw_sensor_reading, fault_injection_t fault_mode) {
     g_fault_mode = fault_mode;
 
+    uint32_t t_start = pmu_get_cycles();
+
     /*
      * Core 0 Task Execution:
      * Ingests raw sensor data and writes independent copies to Zone 1, Zone 2, and Zone 3.
@@ -52,9 +55,11 @@ static voter_result_t execute_flight_frame(int32_t raw_sensor_reading, fault_inj
     mailbox_send_input(1, g_cycle_counter + 1, raw_sensor_reading);
     mailbox_send_input(2, g_cycle_counter + 1, raw_sensor_reading);
     mailbox_send_input(3, g_cycle_counter + 1, raw_sensor_reading);
+    uint32_t t_ingest = pmu_get_cycles();
 
     uint32_t timed_out_mask = 0;
     bool dispatch_ok = amp_dispatch_and_wait(&timed_out_mask);
+    uint32_t t_sync = pmu_get_cycles();
 
     if (!dispatch_ok) {
         voter_result_t res;
@@ -67,6 +72,7 @@ static voter_result_t execute_flight_frame(int32_t raw_sensor_reading, fault_inj
         res.diff23 = 0;
         res.diff13 = 0;
         res.timed_out_core_mask = timed_out_mask;
+        pmu_record_frame_timing(t_start, t_ingest, t_sync, t_sync, pmu_get_cycles());
         return res;
     }
 
@@ -80,6 +86,9 @@ static voter_result_t execute_flight_frame(int32_t raw_sensor_reading, fault_inj
 
     /* Core 0 Dual-Rail Software Lockstep Verification (Self-Monitoring) */
     lockstep_verify_voter(out1, out2, out3, &res);
+    uint32_t t_voter = pmu_get_cycles();
+
+    pmu_record_frame_timing(t_start, t_ingest, t_sync, t_voter, t_voter);
 
     return res;
 }
@@ -142,6 +151,7 @@ int main(void) {
     mmu_init_tables();
     lockstep_init();
     mailbox_init();
+    pmu_init();
     voter_reset_rate_limit(PWM_NEUTRAL_US);
     print_banner();
     print_system_info();
@@ -212,6 +222,9 @@ int main(void) {
         uart_printf("       Core %u: Canaries=%s, Peak Stack Used=%u B, Headroom=%u B\n",
                     c, canaries_ok ? "INTACT" : "CORRUPTED", used, headroom);
     }
+
+    /* PMU WCET & Execution Timing Diagnostics */
+    pmu_print_telemetry();
 
     uart_puts("\n[STATUS] Flight computer completed mission profile smoothly.\n");
     uart_puts("[STATUS] All spatial memory zones intact. System entering standby.\n");

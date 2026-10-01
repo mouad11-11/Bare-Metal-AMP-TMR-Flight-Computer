@@ -16,6 +16,8 @@ qemu_*.txt
 *.gcno
 *.gcov
 tests/host/*.exe
+tests/fi/*.exe
+*.exe
 
 # Python artifacts
 __pycache__/

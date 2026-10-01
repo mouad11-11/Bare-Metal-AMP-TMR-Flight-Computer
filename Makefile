@@ -54,6 +54,7 @@ TEST_MATH_BIN  := tests/host/test_safe_math.exe
 TEST_MMU_BIN   := tests/host/test_mmu.exe
 TEST_LOCK_BIN  := tests/host/test_lockstep.exe
 TEST_MBOX_BIN  := tests/host/test_mailbox.exe
+TEST_PMU_BIN   := tests/host/test_pmu.exe
 
 .PHONY: all clean dump run test-host test-fi
 
@@ -142,6 +143,12 @@ test-host:
 	$(TEST_MBOX_BIN)
 	@echo [HOST-COVERAGE] mailbox.c
 	$(HOST_GCOV) -b -c tests/host/test_mailbox-mailbox.gcno
+	@echo [HOST-CC] tests/host/test_pmu.c + src/pmu.c
+	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/pmu.c tests/host/test_pmu.c -o $(TEST_PMU_BIN)
+	@echo [HOST-RUN] $(TEST_PMU_BIN)
+	$(TEST_PMU_BIN)
+	@echo [HOST-COVERAGE] pmu.c
+	$(HOST_GCOV) -b -c tests/host/test_pmu-pmu.gcno
 
 test-fi: $(TARGET_ELF)
 	@echo [FI-CAMPAIGN] Executing automated fault-injection campaign...

@@ -72,12 +72,13 @@ def run_qemu_fault_campaign():
 
     print(f"[EXEC] Launching QEMU Cortex-A15 bare-metal simulation...")
     proc = subprocess.Popen(qemu_cmd, cwd=PROJECT_ROOT)
-    time.sleep(4)
+    time.sleep(5)
     proc.terminate()
     try:
         proc.wait(timeout=2)
     except subprocess.TimeoutExpired:
         proc.kill()
+    time.sleep(0.5)
 
     if not os.path.exists(log_file):
         print(f"[ERROR] Log file {log_file} was not generated.")
