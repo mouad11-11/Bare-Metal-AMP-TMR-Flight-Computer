@@ -9,6 +9,7 @@
 #include "stack_monitor.h"
 #include "node_health.h"
 #include "supervision.h"
+#include "post.h"
 
 static void print_banner(void) {
     uart_puts("\n");
@@ -129,6 +130,16 @@ int main(void) {
     voter_reset_rate_limit(PWM_NEUTRAL_US);
     print_banner();
     print_system_info();
+
+    /* Step 1b: Execute pre-flight Power-On Self-Test (POST - Decision Tree 5) */
+    post_status_t post_res = post_run_all();
+    uart_printf("[POST] Power-On Self-Test Diagnostics: %s\n", post_status_to_string(post_res));
+    if (post_res != POST_PASS) {
+        uart_puts("[FATAL] Hardware/Firmware integrity check failed during POST. Halting.\n");
+        while (1) {
+            wfe();
+        }
+    }
 
     /* Step 2: Wake secondary cores (Cores 1, 2, 3) from QEMU boot holding pen */
     uart_puts("[SYNC] Releasing secondary cores (Cores 1, 2, 3) from QEMU holding pen...\n");

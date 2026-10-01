@@ -22,6 +22,7 @@ set(SRCS
     src/failsafe.c
     src/node_health.c
     src/supervision.c
+    src/post.c
     src/stack_monitor.c
 )
 

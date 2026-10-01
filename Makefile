@@ -49,6 +49,7 @@ TEST_HOST_BIN  := tests/host/test_voter.exe
 TEST_FS_BIN    := tests/host/test_failsafe.exe
 TEST_STACK_BIN := tests/host/test_stack_monitor.exe
 TEST_SUP_BIN   := tests/host/test_supervision.exe
+TEST_POST_BIN  := tests/host/test_post.exe
 
 .PHONY: all clean dump run test-host
 
@@ -105,6 +106,12 @@ test-host:
 	$(TEST_SUP_BIN)
 	@echo [HOST-COVERAGE] supervision.c
 	$(HOST_GCOV) -b -c tests/host/test_supervision-supervision.gcno
+	@echo [HOST-CC] tests/host/test_post.c + src/post.c + src/voter.c + src/node_health.c + src/failsafe.c
+	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/post.c $(SRC_DIR)/voter.c $(SRC_DIR)/node_health.c $(SRC_DIR)/failsafe.c tests/host/test_post.c -o $(TEST_POST_BIN)
+	@echo [HOST-RUN] $(TEST_POST_BIN)
+	$(TEST_POST_BIN)
+	@echo [HOST-COVERAGE] post.c
+	$(HOST_GCOV) -b -c tests/host/test_post-post.gcno
 
 clean:
 	@if exist "$(BUILD_DIR)" rmdir /s /q "$(BUILD_DIR)"

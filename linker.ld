@@ -20,6 +20,8 @@ SECTIONS
         *(.rodata .rodata.*)
         . = ALIGN(4);
     } > RAM
+    _text_start = ADDR(.text);
+    _text_end = .;
 
     .data : {
         *(.data .data.*)
