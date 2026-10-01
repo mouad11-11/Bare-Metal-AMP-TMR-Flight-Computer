@@ -132,7 +132,7 @@ When the ARM binary executes in QEMU, Core 0 runs POST, synchronizes secondary c
 | **Frame 5** | Node 3 Bit-Flip | Synthetic single-bit flip on Node 3 | `0, 545, 545` | NODE 3 MASKED | `1545 us` (PASS) |
 | **Frame 6** | Total Disagreement | Multi-channel corruption | `200, 340, 140`| FAIL-SAFE ACTIVATED | `-9999 us` (SAFE) |
 | **Loop** | Trajectory Execution | 11 simulated dynamic pitch rate steps | Nominal | TRACKING | 11 frames pass |
-| **Frame 7** | Core 2 Simulated Hang | Core 2 enters infinite loop; watchdog trips | Timeout | FAIL-SAFE ACTIVATED | `-9999 us` (SAFE) |
+| **Frame 7** | Core 2 Simulated Hang | Core 2 enters infinite loop; watchdog trips | Timeout | DEGRADED 2oo2 | `1507 us` (PASS) |
 | **Diag** | Stack & Timing Audit | Canary integrity check & PMU cycle report | N/A | ALL CANARIES INTACT | Mission Standby |
 
 ---
@@ -180,7 +180,7 @@ This project is an **architectural and algorithmic software demonstrator** devel
 
 ### Covered Threats & Software Mitigations
 - **Single-Bit Transient Errors (SEUs)**: Arithmetic bit-flips in compute node outputs or mailbox buffers are masked by the 2oo3 median voter.
-- **Node Execution Timeouts**: Detected by Core 0's software cycle-countdown watchdog (500,000 cycle timeout) and handled via node isolation.
+- **Node Execution Timeouts**: Detected by Core 0's software cycle-countdown watchdog (2,000,000 cycle timeout) and handled via degraded 2oo2 quorum or node isolation.
 - **Control-Flow Corruption**: Secondary cores report monotonic CFI checkpoints (`INIT` → `READ_INPUT` → `COMPUTE` → `WRITE_OUTPUT` → `CANARY_CHECK` → `COMPLETE`). Non-monotonic transitions trigger supervisory faults.
 - **Stack Boundary Breaches**: Monitored by 4-word `0xDEADBEEF` canaries audited before and after each frame dispatch.
 - **Corrupted Inter-Core Payloads**: Double-buffered mailbox structures validate IEEE 802.3 CRC32 checksums and sequential frame tokens before data ingest.

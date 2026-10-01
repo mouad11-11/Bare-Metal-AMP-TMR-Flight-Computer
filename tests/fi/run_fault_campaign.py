@@ -72,7 +72,18 @@ def run_qemu_fault_campaign():
 
     print(f"[EXEC] Launching QEMU Cortex-A15 bare-metal simulation...")
     proc = subprocess.Popen(qemu_cmd, cwd=PROJECT_ROOT)
-    time.sleep(5)
+    t_wait = 0.0
+    while t_wait < 10.0:
+        time.sleep(0.5)
+        t_wait += 0.5
+        if os.path.exists(log_file):
+            try:
+                with open(log_file, "r") as f:
+                    if "All spatial memory zones intact." in f.read():
+                        break
+            except Exception:
+                pass
+
     proc.terminate()
     try:
         proc.wait(timeout=2)
@@ -99,7 +110,7 @@ def run_qemu_fault_campaign():
         (6, r"\[FRAME #4\].*?Voter Status : MAJORITY 2oo3 \(Node 2 Outlier Masked\)", "SEU Bit-Flip on Node 2 Neutralized"),
         (7, r"\[FRAME #5\].*?Voter Status : MAJORITY 2oo3 \(Node 3 Outlier Masked\)", "SEU Bit-Flip on Node 3 Neutralized"),
         (8, r"\[FRAME #6\].*?Voter Status : FAIL-SAFE ACTIVATED \(Total Disagreement\)", "Total Disagreement Fail-Safe"),
-        (9, r"\[FRAME #7\].*?Voter Status : FAIL-SAFE ACTIVATED \(Core Watchdog Timeout\)", "Core 2 Hardware Hang Watchdog Trip"),
+        (9, r"\[FRAME #7\].*?Voter Status : DEGRADED 2oo2 \(Consensus Reached\)", "Core 2 Hang Degraded 2oo2 Quorum Sustained"),
         (10, r"\[STATUS\] Flight computer completed mission profile smoothly\.", "Attitude Rate Trajectory Completion"),
         (11, r"\[STATUS\] All spatial memory zones intact\.", "Spatial Memory Zone Boundary Integrity")
     ]

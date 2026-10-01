@@ -1,7 +1,3 @@
-[INFO] Starting QEMU flight computer simulation...
-==============================================================================
-                QEMU SIMULATION OUTPUT CAPTURE
-==============================================================================
 
 ================================================================================
        BARE-METAL AMP TMR FLIGHT COMPUTER (ARM Cortex-A15 Quad-Core)           
@@ -17,6 +13,7 @@
        Tolerance Bound       : delta <= 5 microseconds
        Fail-Safe Command     : -9999 microseconds (Actuator Safe/Neutral)
 --------------------------------------------------------------------------------
+[POST] Power-On Self-Test Diagnostics: PASS (All Hardware & Software Checks Healthy)
 [SYNC] Releasing secondary cores (Cores 1, 2, 3) from QEMU holding pen...
 [SYNC] Core Readiness Status: Node 1=ONLINE, Node 2=ONLINE, Node 3=ONLINE
 
@@ -34,7 +31,7 @@
   Node Outputs : [Node 1: 1538 us] [Node 2: 1533 us] [Node 3: 1537 us]
   Deltas       : |N1-N2|=5, |N2-N3|=4, |N1-N3|=1 (Bound <= 5)
   Voter Status : UNANIMOUS (All Nodes Agree)
-  Commanded PWM: 1536 us
+  Commanded PWM: 1537 us
 --------------------------------------------------------------------------------
 [FRAME #3] TEST 3: SEU Bit-Flip on Node 1 (Core 1 Fault)
   Sensor Input : 50
@@ -57,6 +54,7 @@
   Voter Status : MAJORITY 2oo3 (Node 3 Outlier Masked)
   Commanded PWM: 1545 us
 --------------------------------------------------------------------------------
+[FAILSAFE] Actuators transitioned to SAFE state. Reason: TOTAL_DISAGREEMENT
 [FRAME #6] TEST 6: Total Disagreement -> Predefined Fail-Safe (-9999)
   Sensor Input : 30
   Node Outputs : [Node 1: 1629 us] [Node 2: 1429 us] [Node 3: 1769 us]
@@ -69,7 +67,7 @@
 
 [EXEC] Entering continuous real-time flight control loop...
 [LOOP # 1] Pitch Rate:    0 ddeg/s | Commanded PWM: 1500 us | Status: UNANIMOUS (All Nodes Agree)
-[LOOP # 2] Pitch Rate:   20 ddeg/s | Commanded PWM: 1506 us | Status: UNANIMOUS (All Nodes Agree)
+[LOOP # 2] Pitch Rate:   20 ddeg/s | Commanded PWM: 1506 us | Status: DEGRADED 2oo2 (Consensus Reached)
 [LOOP # 3] Pitch Rate:   45 ddeg/s | Commanded PWM: 1513 us | Status: UNANIMOUS (All Nodes Agree)
 [LOOP # 4] Pitch Rate:   80 ddeg/s | Commanded PWM: 1524 us | Status: UNANIMOUS (All Nodes Agree)
 [LOOP # 5] Pitch Rate:   50 ddeg/s | Commanded PWM: 1515 us | Status: UNANIMOUS (All Nodes Agree)
@@ -80,14 +78,30 @@
 [LOOP #10] Pitch Rate:  -40 ddeg/s | Commanded PWM: 1488 us | Status: UNANIMOUS (All Nodes Agree)
 [LOOP #11] Pitch Rate:    0 ddeg/s | Commanded PWM: 1500 us | Status: UNANIMOUS (All Nodes Agree)
 
-[TEST 7] Simulating Core 2 Hardware Hang (Watchdog Timeout Verification)...
-[FRAME #7] TEST 7: Core 2 Unresponsive -> Watchdog Timeout Fail-Safe
+[TEST 7] Simulating Core 2 Hardware Hang (Degraded 2oo2 Quorum Verification)...
+[FRAME #7] TEST 7: Core 2 Unresponsive -> Degraded 2oo2 Quorum Sustained
   Sensor Input : 25
   Node Outputs : [Node 1: 1507 us] [Node 2: 1500 us] [Node 3: 1507 us]
-  Timeout Mask : 0x00000004 (Hardware Watchdog Trip)
-  Voter Status : FAIL-SAFE ACTIVATED (Core Watchdog Timeout)
-  Commanded PWM: -9999 (*** FAIL-SAFE ACTIVATED: ACTUATORS COMMANDED TO SAFE STATE ***)
+  Timeout Mask : 0x00000004 (Software Watchdog Timeout)
+  Deltas       : |N1-N2|=7, |N2-N3|=7, |N1-N3|=0 (Bound <= 5)
+  Voter Status : DEGRADED 2oo2 (Consensus Reached)
+  Commanded PWM: 1507 us
 --------------------------------------------------------------------------------
+
+[DIAG] Stack Canary & High-Water Mark Telemetry:
+       Core 0: Canaries=INTACT, Peak Stack Used=652 B, Headroom=5476 B
+       Core 1: Canaries=INTACT, Peak Stack Used=64 B, Headroom=6064 B
+       Core 2: Canaries=INTACT, Peak Stack Used=64 B, Headroom=6064 B
+       Core 3: Canaries=INTACT, Peak Stack Used=64 B, Headroom=6064 B
+
+[WCET] Performance Monitor Unit (PMU) Timing Profile:
+       Sensor Ingest & Mailbox:  7300 cycles
+       AMP Node Compute & Sync: 7057600 cycles
+       2oo3 Voter & Lockstep  : 240800 cycles
+       Telemetry Formatting   :     0 cycles
+       Total Frame Execution  : 7305700 cycles
+       Frame Deadline Budget  : 500000 cycles
+       Timing Safety Margin   :   0% Headroom
 
 [STATUS] Flight computer completed mission profile smoothly.
 [STATUS] All spatial memory zones intact. System entering standby.

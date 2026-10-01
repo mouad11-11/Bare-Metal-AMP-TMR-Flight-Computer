@@ -58,34 +58,44 @@ static voter_result_t execute_flight_frame(int32_t raw_sensor_reading, fault_inj
     uint32_t t_ingest = pmu_get_cycles();
 
     uint32_t timed_out_mask = 0;
-    bool dispatch_ok = amp_dispatch_and_wait(&timed_out_mask);
+    amp_dispatch_and_wait(&timed_out_mask);
     uint32_t t_sync = pmu_get_cycles();
-
-    if (!dispatch_ok) {
-        voter_result_t res;
-        res.final_pwm = FAIL_SAFE_VALUE;
-        res.status = VOTE_TIMEOUT_ERROR;
-        res.val1 = zone_read_output(1);
-        res.val2 = zone_read_output(2);
-        res.val3 = zone_read_output(3);
-        res.diff12 = 0;
-        res.diff23 = 0;
-        res.diff13 = 0;
-        res.timed_out_core_mask = timed_out_mask;
-        pmu_record_frame_timing(t_start, t_ingest, t_sync, t_sync, pmu_get_cycles());
-        return res;
-    }
 
     /* Core 0 ingests isolated output values computed by Cores 1, 2, and 3 */
     int32_t out1 = zone_read_output(1);
     int32_t out2 = zone_read_output(2);
     int32_t out3 = zone_read_output(3);
 
-    /* Core 0 executes Bounded 2oo3 Majority Gate */
-    voter_result_t res = vote_2oo3(out1, out2, out3);
+    /* Construct node samples with validity flags based on completion & watchdog status */
+    node_sample_t samples[3];
+    samples[0].pwm_us = out1;
+    samples[0].frame_id = g_cycle_counter;
+    samples[0].valid = ((timed_out_mask & (1U << 1)) == 0);
 
-    /* Core 0 Dual-Rail Software Lockstep Verification (Self-Monitoring) */
-    lockstep_verify_voter(out1, out2, out3, &res);
+    samples[1].pwm_us = out2;
+    samples[1].frame_id = g_cycle_counter;
+    samples[1].valid = ((timed_out_mask & (1U << 2)) == 0);
+
+    samples[2].pwm_us = out3;
+    samples[2].frame_id = g_cycle_counter;
+    samples[2].valid = ((timed_out_mask & (1U << 3)) == 0);
+
+    /*
+     * Full TMR Voting Engine:
+     * - If all 3 nodes valid: 2oo3 median voting with single outlier masking
+     * - If 1 node timed out (hang) or latched out: degraded 2oo2 fallback between surviving nodes
+     * - If fewer than 2 nodes valid (or remaining nodes disagree): fail-safe command
+     */
+    voter_result_t res = vote_frame_inputs(samples, g_cycle_counter);
+    res.timed_out_core_mask = timed_out_mask;
+    res.val1 = out1;
+    res.val2 = out2;
+    res.val3 = out3;
+
+    /* Core 0 Dual-Rail Software Lockstep Verification (Self-Monitoring on 3-core passes) */
+    if (samples[0].valid && samples[1].valid && samples[2].valid) {
+        lockstep_verify_voter(out1, out2, out3, &res);
+    }
     uint32_t t_voter = pmu_get_cycles();
 
     pmu_record_frame_timing(t_start, t_ingest, t_sync, t_voter, t_voter);
@@ -97,11 +107,10 @@ static void print_flight_frame_result(uint32_t frame_id, const char *scenario_na
     uart_printf("[FRAME #%u] %s\n", frame_id, scenario_name);
     uart_printf("  Sensor Input : %d\n", raw_sensor);
     uart_printf("  Node Outputs : [Node 1: %d us] [Node 2: %d us] [Node 3: %d us]\n", res.val1, res.val2, res.val3);
-    if (res.status == VOTE_TIMEOUT_ERROR) {
-        uart_printf("  Timeout Mask : 0x%02x (Hardware Watchdog Trip)\n", res.timed_out_core_mask);
-    } else {
-        uart_printf("  Deltas       : |N1-N2|=%d, |N2-N3|=%d, |N1-N3|=%d (Bound <= %d)\n", res.diff12, res.diff23, res.diff13, VOTER_TOLERANCE_BOUND);
+    if (res.timed_out_core_mask != 0) {
+        uart_printf("  Timeout Mask : 0x%02x (Software Watchdog Timeout)\n", res.timed_out_core_mask);
     }
+    uart_printf("  Deltas       : |N1-N2|=%d, |N2-N3|=%d, |N1-N3|=%d (Bound <= %d)\n", res.diff12, res.diff23, res.diff13, VOTER_TOLERANCE_BOUND);
     uart_printf("  Voter Status : %s\n", vote_status_to_string(res.status));
     if (res.final_pwm == FAIL_SAFE_VALUE) {
         uart_printf("  Commanded PWM: %d (*** FAIL-SAFE ACTIVATED: ACTUATORS COMMANDED TO SAFE STATE ***)\n", res.final_pwm);
@@ -192,6 +201,12 @@ int main(void) {
     /* Step 3: Run comprehensive automated fault tolerance test suite */
     run_fault_tolerance_test_suite();
 
+    /* Re-arm health monitoring and fail-safe latch for active flight control phase */
+    failsafe_init();
+    node_health_init();
+    supervision_init();
+    voter_reset_rate_limit(PWM_NEUTRAL_US);
+
     /* Step 4: Continuous Real-Time Flight Control Loop */
     uart_puts("[EXEC] Entering continuous real-time flight control loop...\n");
     int32_t simulated_pitch_rates[] = {0, 20, 45, 80, 50, 10, -20, -60, -90, -40, 0};
@@ -208,10 +223,10 @@ int main(void) {
         }
     }
 
-    /* Step 5: Final Watchdog Fault Injection Test (Node 2 Hang) */
-    uart_puts("\n[TEST 7] Simulating Core 2 Hardware Hang (Watchdog Timeout Verification)...\n");
+    /* Step 5: Final Watchdog Fault Injection Test (Node 2 Hang -> Degraded 2oo2) */
+    uart_puts("\n[TEST 7] Simulating Core 2 Hardware Hang (Degraded 2oo2 Quorum Verification)...\n");
     voter_result_t r7 = execute_flight_frame(25, FAULT_HANG_NODE2);
-    print_flight_frame_result(7, "TEST 7: Core 2 Unresponsive -> Watchdog Timeout Fail-Safe", 25, r7);
+    print_flight_frame_result(7, "TEST 7: Core 2 Unresponsive -> Degraded 2oo2 Quorum Sustained", 25, r7);
 
     /* Stack Canary & High-Water Mark Diagnostics */
     uart_puts("\n[DIAG] Stack Canary & High-Water Mark Telemetry:\n");

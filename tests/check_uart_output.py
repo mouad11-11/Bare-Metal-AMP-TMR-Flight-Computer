@@ -19,7 +19,7 @@ EXPECTED_PATTERNS = [
     r"\[FRAME #4\].*?Voter Status : MAJORITY 2oo3 \(Node 2 Outlier Masked\)",
     r"\[FRAME #5\].*?Voter Status : MAJORITY 2oo3 \(Node 3 Outlier Masked\)",
     r"\[FRAME #6\].*?Voter Status : FAIL-SAFE ACTIVATED \(Total Disagreement\)",
-    r"\[FRAME #7\].*?Voter Status : FAIL-SAFE ACTIVATED \(Core Watchdog Timeout\)",
+    r"\[FRAME #7\].*?Voter Status : DEGRADED 2oo2 \(Consensus Reached\)",
     r"\[STATUS\] Flight computer completed mission profile smoothly\.",
     r"\[STATUS\] All spatial memory zones intact\. System entering standby\."
 ]

@@ -138,11 +138,11 @@ Inter-processor communication uses a double-buffered shared memory mailbox proto
         │                                                         ├─ 7. dmb; dsb; sev
         │                                                         └─ Return to WFE holding loop
         │
-  Poll core_done[1..3] with 500k cycle timeout
+  Poll core_done[1..3] with software watchdog timeout (2,000,000 cycles)
         │
   Validate completion flags & CFI tokens
         │
-  Execute 2oo3 Voter & Actuator Dispatch
+  Execute 2oo3 Voter (or Degraded 2oo2 if one core timed out/latched)
 ```
 
 ### Double-Buffered Mailbox Structure
@@ -166,7 +166,7 @@ Pairwise differences are evaluated against the tolerance bound ($\Delta \le 5\ \
 - $|y_1 - y_2| \le 5$, $|y_2 - y_3| \le 5$, $|y_1 - y_3| \le 5$: **Unanimous Consensus** (`VOTE_UNANIMOUS`). Output is $\text{median3}(y_1, y_2, y_3)$.
 - If only one pair agrees (e.g., Nodes 1 and 2 agree, but Node 3 deviates by $> 5\ \mu\text{s}$): **Outlier Masking** (`VOTE_MAJORITY_NODE3_MASKED`). Output is $(y_1 + y_2) / 2$.
 - **Chain Ambiguity Resolution**: If two overlapping pairs agree (e.g., Nodes 1 & 2 agree and Nodes 2 & 3 agree, but Nodes 1 & 3 disagree): the voter selects $\text{median3}(y_1, y_2, y_3)$ and attributes the fault to the node furthest from the closest pair.
-- **Degraded 2oo2 Mode**: If one node is permanently latched out, the system arbitrates between the two remaining nodes if $|y_a - y_b| \le 5\ \mu\text{s}$.
+- **Degraded 2oo2 Mode**: If one node times out or is permanently latched out, the system arbitrates between the two surviving nodes if $|y_a - y_b| \le 5\ \mu\text{s}$, sustaining flight control without tripping fail-safe.
 - **Total Disagreement**: If no two nodes agree, the voter commands `FAIL_SAFE_VALUE` (`-9999 µs`) and triggers safe state.
 
 ### 6.2 Actuator Slew Rate Limiter
@@ -200,4 +200,4 @@ Each node maintains a persistent health tracking record:
 - **Leaky Recovery**: A healthy node must complete $M = 100$ consecutive healthy frames to decay its fault counter by 1.
 
 ### 7.3 Software Watchdog Countdown
-Core 0's dispatch loop spin-waits on `core_done[1..3]` with a bounded counter (`WATCHDOG_MAX_CYCLES = 500000`). If any secondary core hangs (e.g., infinite loop), the countdown expires, the faulted core's bitmask is logged, and the system transitions to safe state.
+Core 0's dispatch loop spin-waits on `core_done[1..3]` with a bounded counter (`WATCHDOG_MAX_CYCLES = 2000000`). If a secondary core hangs (e.g., infinite loop), the countdown expires, the faulted core's bitmask is recorded (`timed_out_mask`), its output is marked invalid, and the voter transitions to degraded 2oo2 quorum if the surviving nodes agree. If multiple cores fail or surviving nodes disagree, the system safely activates fail-safe command.
