@@ -30,8 +30,8 @@ This repository demonstrates the engineering progression of a fault-tolerant mul
 > 📌 **Repository Branch Navigation**:
 > - **Active Flagship (`main`)**: The hardened fault-tolerant architecture with all safety mechanisms and verification suites.
 > - **Baseline Archive ([`v1.0-prototype`](https://github.com/mouad11-11/Bare-Metal-AMP-TMR-Flight-Computer/tree/v1.0-prototype))**: The original educational baseline prototype (commit `b9975e9`), preserved permanently for historical comparison.
-> - **Comparison Documentation**: See [`docs/REVIEW_DOCUMENTATION.md`](docs/REVIEW_DOCUMENTATION.md) for the technical breakdown and side-by-side analysis.
-> - **Architectural Schematics**: See [`docs/SCHEMATICS_AND_BLOCK_DIAGRAMS.md`](docs/SCHEMATICS_AND_BLOCK_DIAGRAMS.md) for side-by-side block diagrams.
+> - **Architecture Guide**: See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the comprehensive breakdown of AMP core roles, memory mapping, IPC barriers, 2oo3 voter, and execution supervision.
+> - **Fault Model & Threat Boundaries**: See [`docs/FAULT_MODEL.md`](docs/FAULT_MODEL.md) for covered fault classes, mitigations, and explicit simulation constraints.
 
 ---
 
@@ -233,25 +233,14 @@ The verification pipeline comprises host unit tests, an automated fault-injectio
 │   ├── flight_control.h / .c   # Flight control laws (Primary & Diverse Q15) + SEU injector
 │   └── uart.h / uart.c         # ARM PL011 UART console telemetry driver at 0x1C090000
 ├── docs/
-│   ├── FAULT_MODEL.md          # Fault model, assumptions, and mitigation boundaries
-│   ├── CODE_AUDIT.md           # Architectural audit of initial baseline implementation
-│   ├── DISCREPANCIES.md        # Audit discrepancies and design reconciliations
-│   ├── IPC_PROTOCOL.md         # Inter-Processor Communication protocol and barrier rules
-│   ├── MEMORY_PROTECTION.md    # Spatial MMU translation tables, access permissions, and XN
-│   ├── CODING_GUIDELINES.md    # Defensive C coding guidelines deviation catalog with rationale
-│   ├── COVERAGE.md             # Structural verification and coverage analysis report
-│   ├── FI_REPORT.md            # 113-vector fault injection campaign report
-│   ├── PORTING_TO_SAFETY_MCU.md# Porting roadmap to lockstep silicon (Cortex-R5F, TMS570, AURIX)
-│   └── safety/                 # Flight Safety Documentation Set
-│       ├── SAFETY_PLAN.md      # Software Safety Plan (SSP)
-│       ├── HAZARD_ANALYSIS.md  # System Hazard Analysis and Risk Assessment (HARA)
-│       ├── SAFETY_REQUIREMENTS.md # Formal numbered requirements (SR-001..SR-016)
-│       ├── FMEA.md             # Subsystem Failure Modes and Effects Analysis
-│       ├── FTA.md              # Fault Tree Analysis with Top Event logic diagram
-│       ├── COMMON_CAUSE_ANALYSIS.md # Common Cause Analysis (CCA) and independence defense
-│       ├── ASSUMPTIONS_OF_USE.md # Assumptions of Use and operational envelope
-│       ├── LIMITATIONS.md      # Technical limitations and simulation boundaries
-│       └── TRACEABILITY.md     # Bi-directional traceability matrix (Hazards -> Reqs -> Tests)
+│   ├── ARCHITECTURE.md         # System architecture, AMP core roles, memory mapping, IPC, and voter logic
+│   ├── FAULT_MODEL.md          # Fault model, threat envelope, assumptions, and hardware/simulation boundaries
+│   ├── FI_REPORT.md            # Automated 113-vector fault injection campaign report (222 assertions verified)
+│   ├── VERIFICATION_REPORT.md  # Host unit test report across 11 suites (246,094 assertions executed, 0 failed)
+│   ├── CODING_GUIDELINES.md    # Defensive C coding guidelines and deviation catalog
+│   ├── baseline_output.txt     # Reference UART output used by automated telemetry verification
+│   └── safety/
+│       └── TRACEABILITY.md     # Safety requirements traceability matrix (16/16 verified)
 ├── tests/
 │   ├── host/                   # 11 Native C host unit test harnesses (246,094 assertions)
 │   ├── fi/                     # Automated fault-injection campaign harness and runner (113 vectors)
