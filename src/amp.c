@@ -73,7 +73,11 @@ void secondary_core_boot_notify(void) {
 
 void secondary_core_entry(void) {
     uint32_t core_id = get_core_id();
-    if (core_id < 1 || core_id > 3) return;
+    /* Prevent duplicate execution for the same frame cycle token */
+    if (core_cycle[core_id] == g_cycle_counter) {
+        return;
+    }
+    core_cycle[core_id] = g_cycle_counter;
 
     /* Checkpoint 1: Ingest sensor input */
     supervision_checkpoint(core_id, CFI_TOKEN_READ_INPUT);
@@ -100,6 +104,7 @@ void secondary_core_entry(void) {
     dmb();
     core_done[core_id] = 1;
     dmb();
+    dsb();
     sev();
 }
 
@@ -137,10 +142,13 @@ bool amp_dispatch_and_wait(uint32_t *timed_out_mask) {
     while ((!core_done[1] || !core_done[2] || !core_done[3]) && --timeout > 0) {
         __asm__ volatile("nop");
     }
+    dmb();
 
     /* Clear mailbox so secondary cores sleep in WFE until next dispatch */
     secondary_spin_addr = NULL;
     dmb();
+    dsb();
+    sev();
 
     /* Evaluate deadlines, completion flags, and CFI signatures across nodes */
     uint32_t done_mask = 0;
