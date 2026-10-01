@@ -55,6 +55,7 @@ TEST_MMU_BIN   := tests/host/test_mmu.exe
 TEST_LOCK_BIN  := tests/host/test_lockstep.exe
 TEST_MBOX_BIN  := tests/host/test_mailbox.exe
 TEST_PMU_BIN   := tests/host/test_pmu.exe
+TEST_DIV_BIN   := tests/host/test_diversity.exe
 
 .PHONY: all clean dump run test-host test-fi
 
@@ -149,6 +150,12 @@ test-host:
 	$(TEST_PMU_BIN)
 	@echo [HOST-COVERAGE] pmu.c
 	$(HOST_GCOV) -b -c tests/host/test_pmu-pmu.gcno
+	@echo [HOST-CC] tests/host/test_diversity.c + src/flight_control.c
+	$(HOST_CC) -Wall -Wextra -Werror -I$(SRC_DIR) --coverage $(SRC_DIR)/flight_control.c tests/host/test_diversity.c -o $(TEST_DIV_BIN)
+	@echo [HOST-RUN] $(TEST_DIV_BIN)
+	$(TEST_DIV_BIN)
+	@echo [HOST-COVERAGE] flight_control.c
+	$(HOST_GCOV) -b -c tests/host/test_diversity-flight_control.gcno
 
 test-fi: $(TARGET_ELF)
 	@echo [FI-CAMPAIGN] Executing automated fault-injection campaign...

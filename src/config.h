@@ -56,4 +56,9 @@
 /* Maximum number of recorded exception / fault entries per core */
 #define MAX_FAULT_RECORDS_PER_CORE  4
 
+/* Design Diversity & Sensor Triplication Groundwork (P3.2 & P3.3) */
+#define DIVERSITY_ENABLED           0       /* 0 = Identical algorithms (baseline), 1 = Diverse formulation on Node 2 */
+#define SENSOR_INPUT_VOTING_ENABLED 0       /* 0 = Shared single-sensor channel (baseline), 1 = Triplicate sensor voting */
+#define SENSOR_VOTE_TOLERANCE       10      /* Max allowable difference between sensor channels (ddeg/s) */
+
 #endif /* CONFIG_H */
