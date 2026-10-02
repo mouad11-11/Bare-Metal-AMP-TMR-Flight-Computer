@@ -11,12 +11,6 @@ MEMORY
     ZONE3 (rw)  : ORIGIN = 0x83000000, LENGTH = 4K
 }
 
-PHDRS
-{
-    text PT_LOAD FLAGS(5);
-    data PT_LOAD FLAGS(6);
-}
-
 SECTIONS
 {
     /* Reset and Interrupt Vector Table at RAM Base */
@@ -25,14 +19,14 @@ SECTIONS
         *(.text .text.*)
         *(.rodata .rodata.*)
         . = ALIGN(4);
-    } > RAM : text
+    } > RAM
     _text_start = ADDR(.text);
     _text_end = .;
 
     .data : {
         *(.data .data.*)
         . = ALIGN(4);
-    } > RAM : data
+    } > RAM
 
     .bss (NOLOAD) : {
         . = ALIGN(4);
@@ -41,7 +35,7 @@ SECTIONS
         *(COMMON)
         . = ALIGN(4);
         _bss_end = .;
-    } > RAM : data
+    } > RAM
 
     /* 32KB total stack: 8KB per core (6KB SVC, 2KB banked exception modes) */
     .stack (NOLOAD) : {
@@ -49,31 +43,18 @@ SECTIONS
         _stack_bottom = .;
         . += 0x8000; /* 32KB */
         _stack_top = .;
-    } > RAM : data
+    } > RAM
 
     /* Zone Boundary Symbols */
-    _zone1_in  = ORIGIN(ZONE1);
-    _zone1_out = ORIGIN(ZONE1) + 4;
-    _zone2_in  = ORIGIN(ZONE2);
-    _zone2_out = ORIGIN(ZONE2) + 4;
-    _zone3_in  = ORIGIN(ZONE3);
-    _zone3_out = ORIGIN(ZONE3) + 4;
-
-    /* Spatial Hardware Partitioning: Mailbox channels in dedicated RAM zones */
-    .mailbox_core1 (ORIGIN(ZONE1) + 0x100) (NOLOAD) : {
-        . = ALIGN(4);
-        *(.mailbox.core1)
-    } > ZONE1 : NONE
-
-    .mailbox_core2 (ORIGIN(ZONE2) + 0x100) (NOLOAD) : {
-        . = ALIGN(4);
-        *(.mailbox.core2)
-    } > ZONE2 : NONE
-
-    .mailbox_core3 (ORIGIN(ZONE3) + 0x100) (NOLOAD) : {
-        . = ALIGN(4);
-        *(.mailbox.core3)
-    } > ZONE3 : NONE
+    _zone1_in   = ORIGIN(ZONE1);
+    _zone1_out  = ORIGIN(ZONE1) + 4;
+    _zone1_mbox = ORIGIN(ZONE1) + 0x100;
+    _zone2_in   = ORIGIN(ZONE2);
+    _zone2_out  = ORIGIN(ZONE2) + 4;
+    _zone2_mbox = ORIGIN(ZONE2) + 0x100;
+    _zone3_in   = ORIGIN(ZONE3);
+    _zone3_out  = ORIGIN(ZONE3) + 4;
+    _zone3_mbox = ORIGIN(ZONE3) + 0x100;
 
     /* Discard unused sections */
     /DISCARD/ : {

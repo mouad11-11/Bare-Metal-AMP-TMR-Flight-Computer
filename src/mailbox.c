@@ -1,24 +1,33 @@
 #include "mailbox.h"
 
 #if defined(__arm__) || defined(__thumb__)
-#define SECTION_CORE1 __attribute__((section(".mailbox.core1")))
-#define SECTION_CORE2 __attribute__((section(".mailbox.core2")))
-#define SECTION_CORE3 __attribute__((section(".mailbox.core3")))
+#include "memory_map.h"
+static mailbox_channel_t s_dummy_channel;
+
+static inline mailbox_channel_t* get_inbound_channel(uint32_t core_id) {
+    switch (core_id) {
+        case 1:  return (mailbox_channel_t*)(ZONE1_BASE_ADDR + 0x100U);
+        case 2:  return (mailbox_channel_t*)(ZONE2_BASE_ADDR + 0x100U);
+        case 3:  return (mailbox_channel_t*)(ZONE3_BASE_ADDR + 0x100U);
+        default: return &s_dummy_channel;
+    }
+}
+
+static inline mailbox_channel_t* get_outbound_channel(uint32_t core_id) {
+    switch (core_id) {
+        case 1:  return (mailbox_channel_t*)(ZONE1_BASE_ADDR + 0x200U);
+        case 2:  return (mailbox_channel_t*)(ZONE2_BASE_ADDR + 0x200U);
+        case 3:  return (mailbox_channel_t*)(ZONE3_BASE_ADDR + 0x200U);
+        default: return &s_dummy_channel;
+    }
+}
 #else
-#define SECTION_CORE1
-#define SECTION_CORE2
-#define SECTION_CORE3
-#endif
-
-SECTION_CORE1 static mailbox_channel_t s_inbound_ch1;
-SECTION_CORE1 static mailbox_channel_t s_outbound_ch1;
-
-SECTION_CORE2 static mailbox_channel_t s_inbound_ch2;
-SECTION_CORE2 static mailbox_channel_t s_outbound_ch2;
-
-SECTION_CORE3 static mailbox_channel_t s_inbound_ch3;
-SECTION_CORE3 static mailbox_channel_t s_outbound_ch3;
-
+static mailbox_channel_t s_inbound_ch1;
+static mailbox_channel_t s_outbound_ch1;
+static mailbox_channel_t s_inbound_ch2;
+static mailbox_channel_t s_outbound_ch2;
+static mailbox_channel_t s_inbound_ch3;
+static mailbox_channel_t s_outbound_ch3;
 static mailbox_channel_t s_dummy_channel;
 
 static inline mailbox_channel_t* get_inbound_channel(uint32_t core_id) {
@@ -38,6 +47,7 @@ static inline mailbox_channel_t* get_outbound_channel(uint32_t core_id) {
         default: return &s_dummy_channel;
     }
 }
+#endif
 
 static inline uint32_t get_free_slot(uint32_t read_slot, uint32_t latest_slot) {
     for (uint32_t i = 0; i < 3; i++) {
@@ -61,12 +71,10 @@ static void init_channel(mailbox_channel_t *ch) {
 }
 
 void mailbox_init(void) {
-    init_channel(&s_inbound_ch1);
-    init_channel(&s_outbound_ch1);
-    init_channel(&s_inbound_ch2);
-    init_channel(&s_outbound_ch2);
-    init_channel(&s_inbound_ch3);
-    init_channel(&s_outbound_ch3);
+    for (uint32_t c = 1; c <= 3; c++) {
+        init_channel(get_inbound_channel(c));
+        init_channel(get_outbound_channel(c));
+    }
     init_channel(&s_dummy_channel);
     dmb();
 }
