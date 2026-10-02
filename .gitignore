@@ -58,6 +58,8 @@ original_cv_page.png
 *.jpeg
 *.jpg
 *.png
+!assets/*.png
+!assets/*.svg
 *.pdf
 test*
 !tests/
