@@ -48,9 +48,83 @@ This project implements an **Asymmetric Multiprocessing (AMP) Triple Modular Red
 
 ## 📐 System Architecture & Inter-Core Dataflow
 
-<p align="center">
-  <img src="assets/architecture_diagram.svg" alt="Quad-Core AMP TMR Architecture Dataflow" width="100%">
-</p>
+```mermaid
+flowchart TD
+    subgraph SENSORS ["📡 Triplicate Sensor Telemetry Stream"]
+        S1["Sensor Pre-Stage (IMU Pitch Gyro)<br/><b>ω_pitch = 0..1666 ddeg/s</b>"]
+    end
+
+    subgraph ARBITER ["👑 Core 0: Master Arbiter & Dual-Rail Supervisor (System RAM 0x80000000)"]
+        direction TB
+        C0_INGEST["Raw Gyro Ingest & Validation<br/><i>Pre-Vote Stage & Timestamping</i>"]
+        C0_MBOX["3-Slot Lock-Free Tri-Buffered Mailboxes<br/><i>Writer-Laps-Reader Overrun Immune</i>"]
+        C0_SUPER["5-State Monotonic CFI Watchdog<br/><i>INIT → READ → COMPUTE → WRITE → AUDIT</i>"]
+        C0_INGEST --> C0_MBOX
+    end
+
+    subgraph NODES ["⚙️ Triplicate Asymmetric Compute Nodes (AMP)"]
+        direction LR
+        subgraph ZONE1 ["Physical Zone 1 (0x81000000)"]
+            N1["<b>Core 1: Compute Node 1</b><br/>• Primary Law: Kp=0.3<br/>• Saturating 32-bit Math<br/>• 8KB Stack Canary"]
+        end
+        subgraph ZONE2 ["Physical Zone 2 (0x82000000)"]
+            N2["<b>Core 2: Diverse Node 2</b><br/>• Diverse Q15 Arithmetic<br/>• ALU Diversity Protection<br/>• 8KB Stack Canary"]
+        end
+        subgraph ZONE3 ["Physical Zone 3 (0x83000000)"]
+            N3["<b>Core 3: Compute Node 3</b><br/>• Primary Law: Kp=0.3<br/>• Saturating 32-bit Math<br/>• 8KB Stack Canary"]
+        end
+    end
+
+    subgraph VOTING ["🛡️ Consensus & Fault Containment Engine"]
+        direction TB
+        VOTER["<b>2oo3 Bounded Majority Voter</b><br/>• Median Selection: median3(y1, y2, y3)<br/>• Chain Resolution (|Δ| ≤ 5 μs)<br/>• Degraded 2oo2 Sustain Mode"]
+        LOCKSTEP["<b>Dual-Rail Software Lockstep</b><br/>• Rail A Primary vs Inverted Rail B (~y)<br/>• Bit-Flip Comparator: R_A ⊕ ~R_B == 0<br/>• Zero Fail-Open Paths"]
+        HEALTH["<b>Leaky-Bucket Health Matrix</b><br/>• Fault Filter (N=3 Latch-Out)<br/>• Recovery Streak (M=100 Decay)"]
+        LIMITER["<b>Saturated Rate Limiter</b><br/>• Max Slew: |Δ| ≤ 200 μs/frame"]
+        
+        VOTER --> LOCKSTEP
+        VOTER --> HEALTH
+        LOCKSTEP --> LIMITER
+    end
+
+    subgraph OUTPUTS ["🚀 Flight Command & Fail-Safe Actuation"]
+        direction LR
+        ACTUATOR["<b>Commanded Actuator</b><br/>PWM 1000 - 2000 μs<br/><i>Flight Surfaces Active</i>"]
+        FAILSAFE["<b>Fail-Safe Emergency Cutout</b><br/>PWM -9999 μs Neutral<br/><i>Tri-State Isolation / Standby</i>"]
+    end
+
+    %% Inter-subgraph routing
+    S1 ==>|"Validated Ingest + DMB"| C0_INGEST
+    C0_MBOX ==>|"Mailbox Ch 1 (0x81000100) + SEV"| N1
+    C0_MBOX ==>|"Mailbox Ch 2 (0x82000100) + SEV"| N2
+    C0_MBOX ==>|"Mailbox Ch 3 (0x83000100) + SEV"| N3
+
+    N1 ==>|"Result y1 + CFI Token"| VOTER
+    N2 ==>|"Result y2 + CFI Token"| VOTER
+    N3 ==>|"Result y3 + CFI Token"| VOTER
+
+    C0_SUPER -.->|"Supervisory Audit"| VOTER
+
+    LIMITER ==>|"Consensus Reached & Lockstep PASS"| ACTUATOR
+    LIMITER -.->|"Consensus Loss / ALU Divergence"| FAILSAFE
+
+    %% Color Styles
+    classDef sensorsStyle fill:#1E293B,stroke:#38BDF8,stroke-width:2px,color:#F8FAFC;
+    classDef arbiterStyle fill:#1E1B4B,stroke:#818CF8,stroke-width:2px,color:#EEF2FF;
+    classDef nodePrimary fill:#0C4A6E,stroke:#38BDF8,stroke-width:2px,color:#F0F9FF;
+    classDef nodeDiverse fill:#134E4A,stroke:#2DD4BF,stroke-width:2px,color:#F0FDFA;
+    classDef voterStyle fill:#78350F,stroke:#FBBF24,stroke-width:2px,color:#FFFBEB;
+    classDef actuatorStyle fill:#064E3B,stroke:#34D399,stroke-width:2px,color:#ECFDF5;
+    classDef failsafeStyle fill:#7F1D1D,stroke:#F87171,stroke-width:2px,color:#FEF2F2;
+
+    class S1 sensorsStyle;
+    class C0_INGEST,C0_MBOX,C0_SUPER arbiterStyle;
+    class N1,N3 nodePrimary;
+    class N2 nodeDiverse;
+    class VOTER,LOCKSTEP,HEALTH,LIMITER voterStyle;
+    class ACTUATOR actuatorStyle;
+    class FAILSAFE failsafeStyle;
+```
 
 <details>
 <summary><b>🔍 Click to view interactive Mermaid execution sequence diagram</b></summary>
@@ -80,7 +154,7 @@ sequenceDiagram
     Node2-->>Arbiter: Write Zone 2 Output (0x82000004) + Core Done Flag
     Node3-->>Arbiter: Write Zone 3 Output (0x83000004) + Core Done Flag
 
-    Note over Arbiter: Spin-lock poll with 500k cycle watchdog timeout
+    Note over Arbiter: Spin-lock poll with bounded software watchdog countdown
     Arbiter->>Arbiter: Evaluate CFI Signatures (CFI_TOKEN_COMPLETE)
     Arbiter->>Arbiter: 2oo3 Median Voting Engine (median3, |Δ| ≤ 5 μs)
     Arbiter->>Arbiter: Independent Rail B Dual-Rail Lockstep Verification
@@ -146,7 +220,7 @@ static inline uint32_t get_free_slot(uint32_t read_slot, uint32_t latest_slot) {
 | **Architectural Model** | Educational proof-of-concept | **Hardened Fault-Tolerant Demonstrator (SIFT)** | [Traceability Matrix](docs/safety/TRACEABILITY.md) |
 | **Consensus Engine** | Raw arithmetic mean (outliers corrupt output) | **2oo3 Median Voter (`median3`) + Chain Ambiguity Resolution** | `T-VOTE-001..010` (236,819 assertions) |
 | **Health Tracking** | Stateless (faulty core re-enters next frame) | **Dual-Threshold Leaky-Bucket ($N=3, M=100$) + Permanent Latch** | `T-HLTH-001..004` (Unit & FI suites) |
-| **Execution Supervision** | Unbounded spin-wait (single hang freezes CPU) | **Software Watchdog (500k cycles) + 5-State CFI Checkpoints** | `T-SUP-001..004` (State transitions verified) |
+| **Execution Supervision** | Unbounded spin-wait (single hang freezes CPU) | **Bounded Software Watchdog + 5-State CFI Checkpoints** | `T-SUP-001..004` (State transitions verified) |
 | **Memory Architecture** | Single flat unpartitioned RAM space | **Hardware Zones (`0x81M..0x83M`) + MMU Page Protection Tables** | `T-MMU-001..005` (Permissions verified) |
 | **Inter-Core IPC** | Volatile shared memory (race-prone) | **3-Slot Lock-Free Tri-Buffered CRC32 Mailboxes (Overrun Immune)** | `T-MBOX-001..004` (Overrun & CRC tested) |
 | **Arbiter Redundancy** | Core 0 single point of failure | **Independent Dual-Rail Software Lockstep (Zero Fail-Open Paths)** | `T-LOCK-001..003` (Glitch & status verified) |
@@ -233,9 +307,7 @@ qemu-system-arm -M vexpress-a15 -cpu cortex-a15 -smp 4 -nographic -kernel tmr_fl
 
 ```text
 Bare-Metal-AMP-TMR-Flight-Computer/
-├── assets/                     # High-resolution architectural SVGs, banners & screenshots
-│   ├── hero_banner.svg         # Dark-mode vector hero banner
-│   ├── architecture_diagram.svg# AMP TMR dataflow schematic
+├── assets/                     # Empirical test captures & telemetry artifacts
 │   └── *.png                   # Empirical test & telemetry captures
 ├── src/                        # Bare-Metal ARMv7-A Firmware Source Code
 │   ├── startup.S               # Vector table, banked stacks, MPIDR core detection

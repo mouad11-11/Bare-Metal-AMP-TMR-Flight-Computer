@@ -46,7 +46,7 @@
 #define FAILSAFE_PWM_US             (-9999)
 
 /* Software watchdog spin-loop timeout bound (cycles) */
-#define WATCHDOG_MAX_CYCLES         500000U
+#define WATCHDOG_MAX_CYCLES         2000000U
 
 /* Stack Canary and Sizing Definitions */
 #define STACK_TOTAL_SIZE            32768U

@@ -73,7 +73,7 @@ def run_qemu_fault_campaign():
     print(f"[EXEC] Launching QEMU Cortex-A15 bare-metal simulation...")
     proc = subprocess.Popen(qemu_cmd, cwd=PROJECT_ROOT)
     t_wait = 0.0
-    while t_wait < 10.0:
+    while t_wait < 25.0:
         time.sleep(0.5)
         t_wait += 0.5
         if os.path.exists(log_file):
