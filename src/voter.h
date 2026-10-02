@@ -6,6 +6,7 @@
 
 #define FAIL_SAFE_VALUE         FAILSAFE_PWM_US
 #define VOTER_TOLERANCE_BOUND   VOTE_AGREE_THRESHOLD_US
+#define HARD_FAULT_THRESHOLD    HARD_FAULT_THRESHOLD_US
 
 /*
  * ==============================================================================

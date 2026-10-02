@@ -40,23 +40,48 @@ static void test_nominal_transfer(void) {
     TEST_ASSERT(mailbox_read_output(3, 1, &val) == MAILBOX_OK && val == 1500);
 }
 
-static void test_double_buffering(void) {
-    printf("[RUN] T-MBOX-002: Double-Buffering Index Alternation\n");
+static void test_tri_buffering_and_overrun_immunity(void) {
+    printf("[RUN] T-MBOX-002: Tri-Buffering Lock-Free Rotation & Overrun Immunity\n");
+    mailbox_init();
     int32_t val = 0;
 
-    /* Frame 1 -> Buffer 1 */
-    mailbox_send_input(1, 1, 100);
-    TEST_ASSERT(mailbox_read_input(1, 1, &val) == MAILBOX_OK && val == 100);
+    mailbox_channel_t *ch1 = mailbox_get_channel(1, true);
+    TEST_ASSERT(ch1 != NULL);
 
-    /* Frame 2 -> Buffer 0 */
+    /* Frame 1: Writer writes to slot 1 (since read=0, latest=0) */
+    mailbox_send_input(1, 1, 100);
+    TEST_ASSERT(ch1->latest_slot == 1);
+    TEST_ASSERT(mailbox_read_input(1, 1, &val) == MAILBOX_OK && val == 100);
+    TEST_ASSERT(ch1->read_slot == 1);
+
+    /* Frame 2: Writer writes to next available slot */
     mailbox_send_input(1, 2, 200);
     TEST_ASSERT(mailbox_read_input(1, 2, &val) == MAILBOX_OK && val == 200);
 
-    /* Frame 3 -> Buffer 1 */
-    mailbox_send_input(1, 3, 300);
-    TEST_ASSERT(mailbox_read_input(1, 3, &val) == MAILBOX_OK && val == 300);
+    /* Overrun / Writer-Laps-Reader Race Test:
+     * Simulate consumer currently holding read_slot = 1 */
+    ch1->read_slot = 1;
+    ch1->latest_slot = 2;
+    /* Producer sends frame 10: free slot must not be 1 (read_slot) nor 2 (latest_slot) -> free=0 */
+    mailbox_send_input(1, 10, 1000);
+    TEST_ASSERT(ch1->write_slot == 0);
+    TEST_ASSERT(ch1->latest_slot == 0);
+    TEST_ASSERT(ch1->read_slot == 1); /* Read slot untouched */
 
-    /* Same for output */
+    /* Producer immediately sends frame 11 before consumer updates read_slot:
+     * read_slot is still 1, latest_slot is 0 -> free slot must be 2! */
+    mailbox_send_input(1, 11, 1100);
+    TEST_ASSERT(ch1->write_slot == 2);
+    TEST_ASSERT(ch1->latest_slot == 2);
+    TEST_ASSERT(ch1->read_slot == 1); /* Read slot 1 STILL untouched! Zero corruption */
+
+    /* Consumer now reads: fetches latest (slot 2, value 1100) */
+    TEST_ASSERT(mailbox_read_input(1, 11, &val) == MAILBOX_OK && val == 1100);
+    TEST_ASSERT(ch1->read_slot == 2);
+
+    /* Same for outbound channel */
+    mailbox_channel_t *ch_out = mailbox_get_channel(2, false);
+    TEST_ASSERT(ch_out != NULL);
     mailbox_send_output(2, 1, 500);
     TEST_ASSERT(mailbox_read_output(2, 1, &val) == MAILBOX_OK && val == 500);
     mailbox_send_output(2, 2, 600);
@@ -116,11 +141,11 @@ static void test_boundary_checks(void) {
 
 int main(void) {
     printf("==============================================================================\n");
-    printf("  Host Double-Buffered CRC Mailbox Test Runner (Native C Unit Harness)\n");
+    printf("  Host Tri-Buffered Lock-Free CRC Mailbox Test Runner (Native C Unit Harness)\n");
     printf("==============================================================================\n");
 
     test_nominal_transfer();
-    test_double_buffering();
+    test_tri_buffering_and_overrun_immunity();
     test_crc_and_sequence_errors();
     test_boundary_checks();
 

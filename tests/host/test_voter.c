@@ -346,6 +346,59 @@ static void test_tree2_health_latching(void) {
     node_health_reset(99);
 }
 
+/* T-VOTE-010: Dual-Threshold Transient Masking vs Hard-Fault Latching */
+static void test_dual_threshold_transient_masking(void) {
+    printf("[RUN] T-VOTE-010: Dual-threshold transient masking vs hard-fault latching\n");
+    node_health_init();
+    voter_reset_rate_limit(1500);
+
+    /* Test 1: Chain-case / transient noise within hard-fault threshold:
+     * Nodes: 1500, 1505, 1510.
+     * Median = 1505.
+     * Devs: |1500-1505|=5, |1505-1505|=0, |1510-1505|=5.
+     * All deviations <= 5 -> all treated as success! */
+    node_sample_t s_chain[3] = {
+        { .pwm_us = 1500, .frame_id = 1, .valid = true },
+        { .pwm_us = 1505, .frame_id = 1, .valid = true },
+        { .pwm_us = 1510, .frame_id = 1, .valid = true }
+    };
+    voter_result_t r_chain = vote_frame_inputs(s_chain, 1);
+    TEST_ASSERT(r_chain.final_pwm == 1505, "Chain case expected median 1505");
+    TEST_ASSERT(!node_health_is_latched(1), "Node 1 must not latch on chain case");
+    TEST_ASSERT(!node_health_is_latched(2), "Node 2 must not latch on chain case");
+    TEST_ASSERT(!node_health_is_latched(3), "Node 3 must not latch on chain case");
+    TEST_ASSERT(node_health_get(1).fault_count == 0, "Node 1 fault count should be 0");
+    TEST_ASSERT(node_health_get(3).fault_count == 0, "Node 3 fault count should be 0");
+
+    /* Test 2: Transient outlier between 5 and 15 (e.g. 1508 us with median 1500, dev=8 us)
+     * Must call node_health_record_transient_mask: fault_count remains 0! */
+    node_sample_t s_transient[3] = {
+        { .pwm_us = 1500, .frame_id = 2, .valid = true },
+        { .pwm_us = 1500, .frame_id = 2, .valid = true },
+        { .pwm_us = 1508, .frame_id = 2, .valid = true }
+    };
+    voter_result_t r_trans = vote_frame_inputs(s_transient, 2);
+    TEST_ASSERT(r_trans.status == VOTE_MAJORITY_NODE3_MASKED, "Expected Node 3 masked");
+    TEST_ASSERT(r_trans.final_pwm == 1500, "Expected consensus PWM 1500");
+    TEST_ASSERT(node_health_get(3).fault_count == 0, "Node 3 fault count should remain 0 for transient deviation");
+    TEST_ASSERT(!node_health_is_latched(3), "Node 3 must not latch for transient deviation");
+
+    /* Test 3: Hard fault (deviation > 15 us, e.g. 1530 us vs median 1500, dev=30 us)
+     * Must increment fault counter */
+    node_sample_t s_hard[3] = {
+        { .pwm_us = 1500, .frame_id = 3, .valid = true },
+        { .pwm_us = 1500, .frame_id = 3, .valid = true },
+        { .pwm_us = 1530, .frame_id = 3, .valid = true }
+    };
+    voter_result_t r_hard = vote_frame_inputs(s_hard, 3);
+    TEST_ASSERT(r_hard.status == VOTE_MAJORITY_NODE3_MASKED, "Expected Node 3 masked");
+    TEST_ASSERT(node_health_get(3).fault_count == 1, "Node 3 fault count should be 1 for hard fault");
+
+    /* Out of bounds testing for node_health_record_transient_mask */
+    node_health_record_transient_mask(0);
+    node_health_record_transient_mask(4);
+}
+
 /* T-VOTE-008: Actuator Rate Limiter */
 static void test_rate_limiter(void) {
     printf("[RUN] T-VOTE-008: Actuator rate limiter (PWM_MAX_STEP_US = 200)\n");
@@ -397,6 +450,7 @@ int main(void) {
     test_boundary_and_stress();
     test_tree1_and_tree2_integration();
     test_tree2_health_latching();
+    test_dual_threshold_transient_masking();
     test_rate_limiter();
     test_status_strings();
 

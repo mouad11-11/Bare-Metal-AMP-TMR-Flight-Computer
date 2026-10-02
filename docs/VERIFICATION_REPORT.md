@@ -5,7 +5,7 @@
 This report documents the verification results of the **Bare-Metal AMP TMR Flight Computer** test suite. The test framework exercises all flight-critical modules using GCC-instrumented native C test runners on the host environment:
 
 - **11 Native C Test Suites**: Testing voter consensus, node health tracking, fail-safe logic, execution supervision, pre-flight diagnostics (POST), saturating math, spatial memory isolation, dual-rail lockstep, mailbox IPC, performance monitoring, and design diversity.
-- **246,094 Total Assertions Executed**: **0 Failed** (100% Pass Rate).
+- **246,122 Total Assertions Executed**: **0 Failed** (100% Pass Rate).
 - **Voter Stress Testing**: Includes an exhaustive 15,625-point parameter grid exploring all permutations in the operational boundary around neutral setpoint ($1500 \pm 12\,\mu\text{s}$).
 
 ---
@@ -14,18 +14,18 @@ This report documents the verification results of the **Bare-Metal AMP TMR Fligh
 
 | Suite # | Test Binary | Target Modules Tested | Assertions | Result | Key Capabilities Verified |
 |---|---|---|:---:|:---:|---|
-| **01** | `test_voter` | `src/voter.c`, `src/node_health.c` | **236,807** | **PASS** | 2oo3 median consensus, permutation symmetry, 15,625-point grid, rate limiting, degraded 2oo2 |
+| **01** | `test_voter` | `src/voter.c`, `src/node_health.c` | **236,819** | **PASS** | 2oo3 median consensus, permutation symmetry, 15,625-point grid, dual-threshold transient masking vs hard latching, degraded 2oo2 |
 | **02** | `test_diversity` | `src/flight_control.c` | **9,025** | **PASS** | Primary vs Q15 diverse control laws across $[-1500, +1500]$ ddeg/s, triplicate sensor cross-check |
 | **03** | `test_safe_math` | `src/safe_math.h` | **60** | **PASS** | Saturating 32-bit addition, subtraction, multiplication, division-by-zero, inverted bounds clamping |
 | **04** | `test_mmu` | `src/mmu.c` | **39** | **PASS** | Level-1 Short-Descriptor section setup, 1MB boundaries, Core 0..3 spatial isolation permissions |
 | **05** | `test_failsafe` | `src/failsafe.c` | **37** | **PASS** | State machine latching, reason codes, exception context frame logging, command status strings |
-| **06** | `test_supervision`| `src/supervision.c` | **24** | **PASS** | Monotonic 5-state CFI checkpoint transitions, sequence divergence detection, missed deadline limits |
-| **07** | `test_lockstep` | `src/lockstep.c` | **24** | **PASS** | Dual-rail software lockstep checking, algebraic median comparison, voter self-monitoring |
-| **08** | `test_mailbox` | `src/mailbox.c` | **24** | **PASS** | Double-buffered ping-pong alternation, IEEE 802.3 CRC32 verification, frame sequence token check |
+| **06** | `test_supervision`| `src/supervision.c` | **26** | **PASS** | Monotonic 5-state CFI checkpoint transitions, per-frame reset, sequence divergence detection, missed deadline limits |
+| **07** | `test_lockstep` | `src/lockstep.c` | **27** | **PASS** | Independent dual-rail lockstep checking, algebraic median comparison, voter self-monitoring, corrupted status detection |
+| **08** | `test_mailbox` | `src/mailbox.c` | **35** | **PASS** | 3-slot lock-free tri-buffering, writer-laps-reader overrun immunity, IEEE 802.3 CRC32 verification, frame sequence token check |
 | **09** | `test_stack_monitor`| `src/stack_monitor.c` | **21** | **PASS** | 4-word `0xDEADBEEF` canary detection, `0xA5A5A5A5` watermarking, high-water mark computation |
 | **10** | `test_post` | `src/post.c` | **18** | **PASS** | CPU register walking 1s/0s, 6-element March C- RAM buffer test, CRC32 code segment integrity |
 | **11** | `test_pmu` | `src/pmu.c` | **15** | **PASS** | Cortex-A15 PMU cycle counter query, frame segment timing recording, WCET margin reporting |
-| **Total** | | | **246,094** | **0 FAIL** | **All 11 test suites passing** |
+| **Total** | | | **246,122** | **0 FAIL** | **All 11 test suites passing** |
 
 ---
 

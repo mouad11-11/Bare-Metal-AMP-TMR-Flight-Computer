@@ -13,8 +13,10 @@ typedef struct {
 } mailbox_msg_t;
 
 typedef struct {
-    mailbox_msg_t buffers[2];
-    volatile uint32_t active_idx;
+    mailbox_msg_t buffers[3];
+    volatile uint32_t write_slot;
+    volatile uint32_t latest_slot;
+    volatile uint32_t read_slot;
 } mailbox_channel_t;
 
 typedef enum {
@@ -59,5 +61,10 @@ void mailbox_send_output(uint32_t core_id, uint32_t seq, int32_t pwm_val);
  * @brief Ingest computed actuator PWM on Core 0 with CRC and sequence validation.
  */
 mailbox_status_t mailbox_read_output(uint32_t core_id, uint32_t expected_seq, int32_t *out_val);
+
+/**
+ * @brief Retrieve pointer to channel for diagnostics, testing, and slot inspection.
+ */
+mailbox_channel_t* mailbox_get_channel(uint32_t core_id, bool is_inbound);
 
 #endif /* MAILBOX_H */

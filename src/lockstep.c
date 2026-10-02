@@ -30,67 +30,59 @@ bool lockstep_verify_voter(int32_t y1, int32_t y2, int32_t y3, voter_result_t *r
 
     /* Rail A value from primary voter pass */
     int32_t rail_a = res->final_pwm;
-    int32_t rail_b = rail_a; /* Presumed agreement unless independently computed otherwise */
+    int32_t rail_b = FAIL_SAFE_VALUE;
 
     /* Independent Rail B computation of pairwise deltas */
     int32_t d12 = safe_diff_i32(y1, y2);
     int32_t d23 = safe_diff_i32(y2, y3);
     int32_t d13 = safe_diff_i32(y1, y3);
 
-    /* Verify arithmetic difference integrity */
+    /* Verify arithmetic difference integrity against Rail A */
     if (res->diff12 != d12 || res->diff23 != d23 || res->diff13 != d13) {
         goto divergence_detected;
     }
 
-    /* Verify consensus decision integrity against independent algebraic logic */
-    switch (res->status) {
-        case VOTE_UNANIMOUS: {
-            int32_t expected_median = algebraic_median3(y1, y2, y3);
-            rail_b = expected_median;
-            if (rail_a != expected_median) {
-                goto divergence_detected;
-            }
-            if (d12 > VOTER_TOLERANCE_BOUND || d23 > VOTER_TOLERANCE_BOUND || d13 > VOTER_TOLERANCE_BOUND) {
-                goto divergence_detected;
-            }
-            break;
-        }
+    bool pair12 = (d12 <= VOTER_TOLERANCE_BOUND);
+    bool pair23 = (d23 <= VOTER_TOLERANCE_BOUND);
+    bool pair13 = (d13 <= VOTER_TOLERANCE_BOUND);
 
-        case VOTE_MAJORITY_NODE1_MASKED: {
-            rail_b = safe_div_i32(safe_add_i32(y2, y3), 2, 0);
-            if (rail_a != rail_b || d23 > VOTER_TOLERANCE_BOUND) {
-                goto divergence_detected;
-            }
-            break;
-        }
+    vote_status_t independent_status = VOTE_TOTAL_DISAGREEMENT;
+    int32_t independent_pwm = FAIL_SAFE_VALUE;
 
-        case VOTE_MAJORITY_NODE2_MASKED: {
-            rail_b = safe_div_i32(safe_add_i32(y1, y3), 2, 0);
-            if (rail_a != rail_b || d13 > VOTER_TOLERANCE_BOUND) {
-                goto divergence_detected;
-            }
-            break;
+    if (pair12 && pair23 && pair13) {
+        independent_status = VOTE_UNANIMOUS;
+        independent_pwm = algebraic_median3(y1, y2, y3);
+    } else if (pair12 && !pair23 && !pair13) {
+        independent_status = VOTE_MAJORITY_NODE3_MASKED;
+        independent_pwm = safe_div_i32(safe_add_i32(y1, y2), 2, 0);
+    } else if (pair13 && !pair12 && !pair23) {
+        independent_status = VOTE_MAJORITY_NODE2_MASKED;
+        independent_pwm = safe_div_i32(safe_add_i32(y1, y3), 2, 0);
+    } else if (pair23 && !pair12 && !pair13) {
+        independent_status = VOTE_MAJORITY_NODE1_MASKED;
+        independent_pwm = safe_div_i32(safe_add_i32(y2, y3), 2, 0);
+    } else if (pair12 || pair23 || pair13) {
+        /* Chain case: Two pairs agree (e.g. Node 2 bridges Nodes 1 and 3) */
+        if (pair12 && (d12 <= d23 && d12 <= d13)) {
+            independent_status = VOTE_MAJORITY_NODE3_MASKED;
+            independent_pwm = algebraic_median3(y1, y2, y3);
+        } else if (pair13 && (d13 <= d12 && d13 <= d23)) {
+            independent_status = VOTE_MAJORITY_NODE2_MASKED;
+            independent_pwm = algebraic_median3(y1, y2, y3);
+        } else {
+            independent_status = VOTE_MAJORITY_NODE1_MASKED;
+            independent_pwm = algebraic_median3(y1, y2, y3);
         }
+    } else {
+        independent_status = VOTE_TOTAL_DISAGREEMENT;
+        independent_pwm = FAIL_SAFE_VALUE;
+    }
 
-        case VOTE_MAJORITY_NODE3_MASKED: {
-            rail_b = safe_div_i32(safe_add_i32(y1, y2), 2, 0);
-            if (rail_a != rail_b || d12 > VOTER_TOLERANCE_BOUND) {
-                goto divergence_detected;
-            }
-            break;
-        }
+    rail_b = independent_pwm;
 
-        case VOTE_TOTAL_DISAGREEMENT: {
-            rail_b = FAIL_SAFE_VALUE;
-            if (rail_a != FAIL_SAFE_VALUE) {
-                goto divergence_detected;
-            }
-            break;
-        }
-
-        default:
-            /* Other statuses (e.g. VOTE_TIMEOUT_ERROR, DEGRADED, CHAIN_CASE if handled) */
-            break;
+    /* Verify both status and PWM match independent Rail B derivation */
+    if (res->status != independent_status || rail_a != independent_pwm) {
+        goto divergence_detected;
     }
 
     /* Agreement verified */

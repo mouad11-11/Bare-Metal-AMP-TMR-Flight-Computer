@@ -28,8 +28,8 @@ The system is architected to detect, isolate, and mask the following single-poin
    - Node finishes computation after the frame deadline has expired or delivers stale data from frame `k - 1`.
    - *Mitigation*: Monotonically incrementing `frame_id` token echoed by each worker node. Mismatched sequence numbers are rejected prior to voting.
 5. **Single Corrupted Mailbox Record**:
-   - Bit-flip in dispatch pointer (`secondary_spin_addr`) or completion flag (`core_done[i]`).
-   - *Mitigation*: Strict memory ordering barriers (`DMB`/`DSB`/`ISB`), double-buffered sequence verification, 64-byte cache-line padding, and bounded watchdog timeouts.
+   - Bit-flip in dispatch pointer (`secondary_spin_addr`), tri-buffered channel (`s_inbound_ch1..3`, `s_outbound_ch1..3`), or completion flag (`core_done[i]`).
+   - *Mitigation*: Strict memory ordering barriers (`DMB`/`DSB`/`ISB`), 3-slot lock-free tri-buffering (overrun & writer-laps-reader immunity), CRC32 integrity validation, sequence token verification, 64-byte cache-line padding, and bounded watchdog timeouts.
 
 ---
 

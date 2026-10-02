@@ -27,6 +27,19 @@ void node_health_record_fault(uint32_t node_id) {
     }
 }
 
+void node_health_record_transient_mask(uint32_t node_id) {
+    if (node_id < 1 || node_id > 3) {
+        return;
+    }
+
+    if (s_health[node_id].is_latched) {
+        return;
+    }
+
+    /* Reset consecutive good streak without incrementing permanent fault counter */
+    s_health[node_id].good_streak = 0;
+}
+
 void node_health_record_success(uint32_t node_id) {
     if (node_id < 1 || node_id > 3) {
         return;

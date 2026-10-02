@@ -22,21 +22,21 @@ The initial release ([`v1.0-prototype`](https://github.com/mouad11-11/Bare-Metal
 - **Empty Exception Traps**: Hardware aborts and undefined instructions branched into empty infinite spin-loops without diagnostics or safe-state transitions.
 - **Absence of Verification**: The codebase had zero automated unit tests, no code coverage telemetry, and no reproducible fault-injection framework.
 
-To eliminate these vulnerabilities, **v2.0 Hardened** was engineered as a robust **Software-Implemented Fault Tolerance (SIFT)** architecture. It introduces a bounded 2oo3 median voter (`median3`) with chain-ambiguity resolution and degraded 2oo2 fallback, leaky-bucket health accumulators with permanent latch-out, bounded watchdog timeouts with 5-state Control-Flow Integrity (CFI) tokens, spatial memory partitioning with MMU tables, double-buffered CRC32 mailboxes, Core 0 dual-rail software lockstep self-monitoring, Power-On Self-Tests (POST), and a comprehensive automated test pipeline comprising 246,094 unit test assertions and a 113-vector automated fault-injection campaign.
+To eliminate these vulnerabilities, **v2.0 Hardened** was engineered as a robust **Software-Implemented Fault Tolerance (SIFT)** architecture. It introduces a bounded 2oo3 median voter (`median3`) with chain-ambiguity resolution and degraded 2oo2 fallback, leaky-bucket health accumulators with permanent latch-out, bounded watchdog timeouts with 5-state Control-Flow Integrity (CFI) tokens, spatial memory partitioning with dedicated linker sections and MMU tables, 3-slot lock-free tri-buffered CRC32 mailboxes, Core 0 independent dual-rail software lockstep self-monitoring, Power-On Self-Tests (POST), and a comprehensive automated test pipeline comprising 246,122 unit test assertions and a 113-vector automated fault-injection campaign.
 
 | Engineering Domain | Baseline Prototype (`v1.0-prototype`) | Hardened Architecture (`v2.0-hardened` / `main`) | Verification Proof |
 |---|---|---|:---:|
 | **Architecture Scope** | Educational demonstrator | **Hardened Fault-Tolerant Demonstrator (SIFT)** | [Traceability Matrix](docs/safety/TRACEABILITY.md) |
-| **Voter Mechanism** | Raw arithmetic mean (susceptible to outliers) | **2oo3 Median Voter (`median3`) + Chain Ambiguity + Rate Limiter** | `T-VOTE-001..009` (236,807 assertions) |
-| **Health Latching** | Stateless (faulty core re-enters next frame) | **Leaky-Bucket ($N = 3, M = 100$) Permanent Latch-Out** | `T-HLTH-001..004` (Tested in unit & FI suites) |
-| **Execution Supervision**| Unbounded spin-waits (can freeze CPU) | **Software Watchdog (500k cycle timeout) + 5-State CFI Checkpoints** | `T-SUP-001..004` (State machine verified) |
+| **Voter Mechanism** | Raw arithmetic mean (susceptible to outliers) | **2oo3 Median Voter (`median3`) + Chain Ambiguity + Dual-Threshold Health** | `T-VOTE-001..010` (236,819 assertions) |
+| **Health Latching** | Stateless (faulty core re-enters next frame) | **Leaky-Bucket ($N = 3, M = 100$) Permanent Latch-Out vs Transient Mask** | `T-HLTH-001..004` (Tested in unit & FI suites) |
+| **Execution Supervision**| Unbounded spin-waits (can freeze CPU) | **Software Watchdog (500k cycle timeout) + 5-State CFI Checkpoints + Barriers** | `T-SUP-001..004` (State machine verified) |
 | **Exception Handling**| 7 empty loops / hang on trap | **Full ARMv7-A 8-Vector Table + 2KB Banked Stacks + Fault Logs** | `T-FS-004` (Exception recording verified) |
 | **Pre-Flight Diagnostics**| None (boots directly into flight loop) | **POST Suite (CPU Walking Patterns, RAM March C-, CRC32, Voter)** | `T-POST-001..006` (All diagnostics passing) |
-| **Spatial Partitioning**| Single flat memory space | **Dedicated RAM Zones (`0x81M`, `0x82M`, `0x83M`) + Pre-computed MMU Tables** | `T-MMU-001..005` (Permissions verified) |
-| **Inter-Core IPC** | Volatile shared memory (unprotected) | **Double-Buffered CRC32 Mailboxes + Frame Sequence Tokens** | `T-MBOX-001..004` (Corruption rejection verified) |
-| **Arbiter Redundancy**| Core 0 single point of failure | **Dual-Rail Software Lockstep (Independent Algebraic Checking)** | `T-LOCK-001..003` (Glitch detection verified) |
+| **Spatial Partitioning**| Single flat memory space | **Dedicated RAM Zones (`0x81M..0x83M`) + Linker Sections (`.mailbox.core1..3`) + MMU** | `T-MMU-001..005` (Permissions verified) |
+| **Inter-Core IPC** | Volatile shared memory (unprotected) | **3-Slot Lock-Free Tri-Buffered CRC32 Mailboxes (Overrun Immune)** | `T-MBOX-001..004` (Overrun & corruption tested) |
+| **Arbiter Redundancy**| Core 0 single point of failure | **Independent Dual-Rail Software Lockstep (Zero Fail-Open Paths)** | `T-LOCK-001..003` (Glitch & status verified) |
 | **Dynamic Memory** | Zero dynamic allocation | **Zero dynamic allocation (`malloc` prohibited, static linkage)** | Linker map inspection |
-| **Host Unit Testing** | None (0 assertions) | **11 Native C Test Suites (246,094 assertions executed, 0 failed)** | `make test-host` (All 11 suites pass) |
+| **Host Unit Testing** | None (0 assertions) | **11 Native C Test Suites (246,122 assertions executed, 0 failed)** | `make test-host` (All 11 suites pass) |
 | **Fault Injection** | Manual 7-frame demo | **113-Vector Automated FI Campaign (222 assertions verified, 0 failures)** | `make test-fi` (Native & QEMU passing) |
 
 > 📌 **Repository Branch Navigation**:
@@ -197,8 +197,8 @@ This project is an **architectural and algorithmic software demonstrator** devel
 - **Node Execution Timeouts**: Detected by Core 0's software cycle-countdown watchdog (500,000 cycle timeout) and handled via degraded 2oo2 quorum or node isolation.
 - **Control-Flow Corruption**: Secondary cores report monotonic CFI checkpoints (`INIT` → `READ_INPUT` → `COMPUTE` → `WRITE_OUTPUT` → `CANARY_CHECK` → `COMPLETE`). Non-monotonic transitions trigger supervisory faults.
 - **Stack Boundary Breaches**: Monitored by 4-word `0xDEADBEEF` canaries audited before and after each frame dispatch.
-- **Corrupted Inter-Core Payloads**: Double-buffered mailbox structures validate IEEE 802.3 CRC32 checksums and sequential frame tokens before data ingest.
-- **Arbiter ALU Divergence**: Core 0 runs dual-rail software lockstep verification, cross-checking voter decisions against an independent algebraic implementation.
+- **Corrupted Inter-Core Payloads & Overrun Races**: 3-slot lock-free tri-buffered mailbox structures validate IEEE 802.3 CRC32 checksums and sequential frame tokens before data ingest, providing writer-laps-reader immunity.
+- **Arbiter ALU Divergence**: Core 0 runs independent dual-rail software lockstep verification, cross-checking voter decisions and status against an independent algebraic implementation.
 
 ### Architectural & Simulation Boundaries
 - **QEMU Emulation Platform**: QEMU operates via Dynamic Binary Translation (TCG). Instruction timing, cache hit/miss penalties, bus contention, and clock jitter are simulated and are not cycle-accurate. Performance Monitor Unit (PMU) readings reflect simulated instruction cycles.
@@ -215,7 +215,7 @@ The verification pipeline comprises host unit tests, an automated fault-injectio
 
 | Test Harness | Scope & Modules Exercised | Exact Verified Result |
 |---|---|---|
-| `make test-host` | 11 native C unit test suites: Voter, Health, Fail-Safe, Stack Monitor, Supervision, POST, Safe Math, MMU, Lockstep, Mailbox, PMU, Diversity | **246,094 assertions executed, 0 failed** (includes 15,625-point voter stress grid) |
+| `make test-host` | 11 native C unit test suites: Voter, Health, Fail-Safe, Stack Monitor, Supervision, POST, Safe Math, MMU, Lockstep, Mailbox, PMU, Diversity | **246,122 assertions executed, 0 failed** (includes 15,625-point voter stress grid) |
 | `make test-fi` / `python tests/fi/run_fault_campaign.py` | Automated Fault Injection Campaign: Phase 1 (Native C) + Phase 2 (Bare-Metal QEMU) | **113 test vectors evaluated across 7 fault categories, 222 assertions verified, 0 failures; 11/11 QEMU assertions verified** |
 | `python tools/check_traceability.py` | Safety Requirements Traceability Matrix Audit | **16/16 Safety Requirements (SR-001..SR-016) fully traced to hazards, code, and tests** |
 | `python tests/check_uart_output.py` | QEMU Live Flight Telemetry Output Validator | **11/11 telemetry patterns verified** from UART output |
@@ -242,7 +242,7 @@ The verification pipeline comprises host unit tests, an automated fault-injectio
 │   ├── stack_monitor.h / .c    # Stack boundary canaries and peak watermarking diagnostics
 │   ├── mmu.h / mmu.c           # ARMv7-A Short-Descriptor MMU tables & spatial partition setup
 │   ├── lockstep.h / lockstep.c # Core 0 Dual-Rail Software Lockstep and voter self-monitoring
-│   ├── mailbox.h / mailbox.c   # Double-buffered CRC32 inter-core mailbox protocol
+│   ├── mailbox.h / mailbox.c   # 3-slot lock-free tri-buffered CRC32 inter-core mailbox protocol
 │   ├── pmu.h / pmu.c           # Cortex-A15 Performance Monitor Unit (PMU) cycle profiler
 │   ├── flight_control.h / .c   # Flight control laws (Primary & Diverse Q15) + SEU injector
 │   └── uart.h / uart.c         # ARM PL011 UART console telemetry driver at 0x1C090000

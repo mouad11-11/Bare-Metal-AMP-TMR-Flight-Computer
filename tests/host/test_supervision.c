@@ -131,6 +131,14 @@ static void test_bounds(void) {
 
     TEST_ASSERT(supervision_is_node_dead(0) == true, "Core 0 considered dead/invalid");
     TEST_ASSERT(supervision_is_node_dead(4) == true, "Core 4 considered dead/invalid");
+
+    /* Test supervision_reset_frame */
+    supervision_reset_frame(0); /* Invalid */
+    supervision_reset_frame(4); /* Invalid */
+    supervision_reset_frame(1); /* Valid */
+    node_supervision_t s1 = supervision_get_node(1);
+    TEST_ASSERT(s1.cfi_signature == CFI_TOKEN_INIT, "Core 1 signature should be CFI_TOKEN_INIT");
+    TEST_ASSERT(!s1.is_timed_out, "Core 1 should not be timed out after reset");
 }
 
 int main(void) {

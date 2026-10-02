@@ -138,33 +138,29 @@ voter_result_t vote_frame_inputs(const node_sample_t samples[3], uint32_t expect
         /* Nominal 3-node voting */
         res = vote_2oo3(samples[0].pwm_us, samples[1].pwm_us, samples[2].pwm_us);
 
-        switch (res.status) {
-            case VOTE_UNANIMOUS:
-                node_health_record_success(1);
-                node_health_record_success(2);
-                node_health_record_success(3);
-                break;
-            case VOTE_MAJORITY_NODE1_MASKED:
-                node_health_record_fault(1);
-                node_health_record_success(2);
-                node_health_record_success(3);
-                break;
-            case VOTE_MAJORITY_NODE2_MASKED:
-                node_health_record_success(1);
-                node_health_record_fault(2);
-                node_health_record_success(3);
-                break;
-            case VOTE_MAJORITY_NODE3_MASKED:
-                node_health_record_success(1);
-                node_health_record_success(2);
-                node_health_record_fault(3);
-                break;
-            default:
-                node_health_record_fault(1);
-                node_health_record_fault(2);
-                node_health_record_fault(3);
-                failsafe_trigger(REASON_TOTAL_DISAGREEMENT);
-                break;
+        if (res.status == VOTE_TOTAL_DISAGREEMENT) {
+            node_health_record_fault(1);
+            node_health_record_fault(2);
+            node_health_record_fault(3);
+            failsafe_trigger(REASON_TOTAL_DISAGREEMENT);
+        } else {
+            int32_t med = median3(
+                samples[0].pwm_us,
+                samples[1].pwm_us,
+                samples[2].pwm_us
+            );
+
+            for (uint32_t i = 0; i < 3; i++) {
+                int32_t deviation = safe_diff(samples[i].pwm_us, med);
+
+                if (deviation > HARD_FAULT_THRESHOLD) {
+                    node_health_record_fault(i + 1);
+                } else if (deviation > VOTER_TOLERANCE_BOUND) {
+                    node_health_record_transient_mask(i + 1);
+                } else {
+                    node_health_record_success(i + 1);
+                }
+            }
         }
 
         if (res.final_pwm != FAIL_SAFE_VALUE) {

@@ -26,6 +26,9 @@ void node_health_init(void);
 /* Record successful agreement frame for a node (leaky bucket decay) */
 void node_health_record_success(uint32_t node_id);
 
+/* Record transient masking (deviation > VOTER_TOLERANCE_BOUND but <= HARD_FAULT_THRESHOLD) */
+void node_health_record_transient_mask(uint32_t node_id);
+
 /* Record fault / outlier / plausibility violation for a node */
 void node_health_record_fault(uint32_t node_id);
 

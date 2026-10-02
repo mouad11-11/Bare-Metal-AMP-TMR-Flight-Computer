@@ -96,10 +96,16 @@ Physical memory is statically mapped in `linker.ld` to ensure strict spatial sep
 | Region | Address Range | Size | Access Rules | Description |
 |---|---|---|---|---|
 | **System / Text** | `0x80000000 - 0x80FFFFFF` | 16 MB | Core 0 RWX | Code, vectors, constants, `.bss`, Arbiter |
-| **Zone 1 Partition**| `0x81000000 - 0x81000FFF` | 4 KB | Core 0 RW, Core 1 RW | Dedicated data buffers for Node 1 |
-| **Zone 2 Partition**| `0x82000000 - 0x82000FFF` | 4 KB | Core 0 RW, Core 2 RW | Dedicated data buffers for Node 2 |
-| **Zone 3 Partition**| `0x83000000 - 0x83000FFF` | 4 KB | Core 0 RW, Core 3 RW | Dedicated data buffers for Node 3 |
+| **Zone 1 Partition**| `0x81000000 - 0x81000FFF` | 4 KB | Core 0 RW, Core 1 RW | Dedicated data buffers & `.mailbox.core1` for Node 1 |
+| **Zone 2 Partition**| `0x82000000 - 0x82000FFF` | 4 KB | Core 0 RW, Core 2 RW | Dedicated data buffers & `.mailbox.core2` for Node 2 |
+| **Zone 3 Partition**| `0x83000000 - 0x83000FFF` | 4 KB | Core 0 RW, Core 3 RW | Dedicated data buffers & `.mailbox.core3` for Node 3 |
 | **Stack Partition** | `0x80010000 - 0x80017FFF` | 32 KB | Core-private offsets | 8KB statically partitioned per core |
+
+### Dedicated Hardware Sections (`linker.ld`)
+To enforce strict spatial separation and eliminate shared-memory cross-talk:
+- Inbound and outbound mailbox channels for Node 1 are placed in section `.mailbox.core1` at `0x81000100` (`ZONE1`).
+- Inbound and outbound mailbox channels for Node 2 are placed in section `.mailbox.core2` at `0x82000100` (`ZONE2`).
+- Inbound and outbound mailbox channels for Node 3 are placed in section `.mailbox.core3` at `0x83000100` (`ZONE3`).
 
 ### ARMv7-A Short-Descriptor MMU Translation Tables (`src/mmu.c`)
 The system constructs 4 translation tables (16KB each, aligned to 16KB boundaries):
@@ -110,18 +116,18 @@ The system constructs 4 translation tables (16KB each, aligned to 16KB boundarie
   - `MMU_ATTR_NORMAL_RW` (`0x00000C1E`): Execute-Never (`XN = 1`) data partitions.
   - `MMU_DESC_FAULT` (`0x00000000`): Unmapped entries that generate a translation fault upon access.
 
-In the bare-metal demonstrator, spatial isolation is established by linker-defined address conventions and software permission auditing (`mmu_check_permission()`). Hardware MMU translation tables are constructed in RAM (`mmu_init_tables()`) and fully verified in host unit tests, but hardware MMU enforcement is **not activated** in the default bare-metal QEMU build — cores can technically access any physical address. True hardware-enforced isolation requires enabling `mmu_enable_core()` at boot, which is validated in the test harnesses but left disabled in the default configuration to simplify the demonstrator.
+In the bare-metal demonstrator, spatial isolation is established by linker-defined address conventions, dedicated ELF sections in each zone, and software permission auditing (`mmu_check_permission()`). Hardware MMU translation tables are constructed in RAM (`mmu_init_tables()`) and fully verified in host unit tests, but hardware MMU enforcement is **not activated** in the default bare-metal QEMU build — cores can technically access any physical address. True hardware-enforced isolation requires enabling `mmu_enable_core()` at boot, which is validated in the test harnesses but left disabled in the default configuration to simplify the demonstrator.
 
 ---
 
 ## 5. Inter-Core Communication & Synchronization
-
-Inter-processor communication uses a double-buffered shared memory mailbox protocol guarded by ARMv7-A architectural barriers (`src/mailbox.c`, `src/amp.c`):
-
+ 
+Inter-processor communication uses a 3-slot lock-free tri-buffered shared memory mailbox protocol guarded by ARMv7-A architectural barriers (`src/mailbox.c`, `src/amp.c`):
+ 
 ```text
 [Core 0 (Arbiter)]                                   [Cores 1..3 (Compute Nodes)]
         │                                                         │
-        ├─ 1. Write sensor input to Zone & Mailbox                │
+        ├─ 1. Write sensor input to Zone & Tri-Buffer Mailbox     │
         ├─ 2. dmb (Data Memory Barrier)                           │
         ├─ 3. Set secondary_spin_addr = secondary_core_entry      │
         ├─ 4. Increment g_cycle_counter                           │
@@ -129,9 +135,9 @@ Inter-processor communication uses a double-buffered shared memory mailbox proto
         ├─ 6. sev (Send Event - wakes secondary cores)            │
         │                                                         │
         │                                           Woken from WFE:
-        │                                                         ├─ 1. Ingest input (Mailbox/Zone)
+        │                                                         ├─ 1. Ingest input (Tri-Buffer Mailbox/Zone)
         │                                                         ├─ 2. Compute flight control law
-        │                                                         ├─ 3. Write output to Zone & Mailbox
+        │                                                         ├─ 3. Write output to Zone & Tri-Buffer Mailbox
         │                                                         ├─ 4. Report CFI checkpoints
         │                                                         ├─ 5. Verify stack canary
         │                                                         ├─ 6. Set core_done[core_id] = 1
@@ -144,10 +150,14 @@ Inter-processor communication uses a double-buffered shared memory mailbox proto
         │
   Execute 2oo3 Voter (or Degraded 2oo2 if one core timed out/latched)
 ```
-
-### Double-Buffered Mailbox Structure
-Each core pair communicates through a double-buffered mailbox struct:
-- **Ping-Pong Buffering**: Alternates between buffer index 0 and 1 based on the frame sequence number, preventing write-after-read race conditions.
+ 
+### Lock-Free Tri-Buffered Mailbox (`mailbox_channel_t`)
+Each core pair communicates through a three-slot lock-free tri-buffer:
+- **Write Slot**: Buffer currently being written by the producer.
+- **Latest Slot**: Index of the most recent fully written, CRC-verified, published message.
+- **Read Slot**: Buffer currently being read by the consumer.
+- **Overrun / Writer-Laps-Reader Immunity**: The producer always selects a free slot distinct from both `read_slot` and `latest_slot` (`get_free_slot()`). Even if the producer writes multiple consecutive frames while the consumer is reading, the consumer's active buffer is never overwritten.
+- **Publish Memory Ordering**: Data payload, sequence ID, and CRC32 are written into the free slot before an architectural `dmb()` memory barrier is executed; only then is `latest_slot` atomically updated.
 - **CRC32 Protection**: Every transaction includes an IEEE 802.3 CRC32 checksum computed over the payload. Corrupted frames are rejected (`MAILBOX_ERR_CRC`).
 - **Sequence Validation**: Incoming tokens must match the expected cycle counter. Stale frames are rejected (`MAILBOX_ERR_SEQUENCE`).
 
@@ -162,7 +172,7 @@ In multicore ARM architectures with shared L2 caches (such as the quad-core Cort
 
 The voter implements a bounded 2-out-of-3 (2oo3) majority gate utilizing median selection:
 
-### 6.1 Median Consensus (`median3`)
+### 6.1 Median Consensus (`median3`) & Dual-Threshold Health Logic
 Given three compute node outputs $y_1, y_2, y_3$:
 
 $$\text{median3}(a, b, c) = \begin{cases} a & \text{if } (b \le a \le c) \lor (c \le a \le b) \\ b & \text{if } (a \le b \le c) \lor (c \le b \le a) \\ c & \text{otherwise} \end{cases}$$
@@ -170,7 +180,11 @@ $$\text{median3}(a, b, c) = \begin{cases} a & \text{if } (b \le a \le c) \lor (c
 Pairwise differences are evaluated against the tolerance bound ($\Delta \le 5\ \mu\text{s}$):
 - $|y_1 - y_2| \le 5$, $|y_2 - y_3| \le 5$, $|y_1 - y_3| \le 5$: **Unanimous Consensus** (`VOTE_UNANIMOUS`). Output is $\text{median3}(y_1, y_2, y_3)$.
 - If only one pair agrees (e.g., Nodes 1 and 2 agree, but Node 3 deviates by $> 5\ \mu\text{s}$): **Outlier Masking** (`VOTE_MAJORITY_NODE3_MASKED`). Output is $(y_1 + y_2) / 2$.
-- **Chain Ambiguity Resolution**: If two overlapping pairs agree (e.g., Nodes 1 & 2 agree and Nodes 2 & 3 agree, but Nodes 1 & 3 disagree): the voter selects $\text{median3}(y_1, y_2, y_3)$ and attributes the fault to the node furthest from the closest pair.
+- **Chain Ambiguity Resolution**: If two overlapping pairs agree (e.g., Nodes 1 & 2 agree and Nodes 2 & 3 agree, but Nodes 1 & 3 disagree): the voter selects $\text{median3}(y_1, y_2, y_3)$ and attributes the mask to the node furthest from the closest pair.
+- **Dual-Threshold Health Separation**: To prevent premature degradation from transient boundary noise or chain-case geometry, the system differentiates between consensus tolerance (`VOTER_TOLERANCE_BOUND = 5 µs`) and hard-fault latching (`HARD_FAULT_THRESHOLD = 15 µs`):
+  - Deviations $\le 5\,\mu\text{s}$: Recorded as normal success (`node_health_record_success`).
+  - Deviations $> 5\,\mu\text{s}$ and $\le 15\,\mu\text{s}$: Masked by median voting without incrementing the permanent latch-out counter (`node_health_record_transient_mask`).
+  - Severe outliers $> 15\,\mu\text{s}$: Increment the node's permanent fault counter (`node_health_record_fault`).
 - **Degraded 2oo2 Mode**: If one node times out or is permanently latched out, the system arbitrates between the two surviving nodes if $|y_a - y_b| \le 5\ \mu\text{s}$, sustaining flight control without tripping fail-safe.
 - **Total Disagreement**: If no two nodes agree, the voter commands `FAIL_SAFE_VALUE` (`-9999 µs`) and triggers safe state.
 
@@ -181,26 +195,29 @@ $$|\text{PWM}_k - \text{PWM}_{k-1}| \le 200\ \mu\text{s}$$
 
 Candidate commands exceeding this bound are clamped to $\text{PWM}_{k-1} \pm 200\ \mu\text{s}$.
 
-### 6.3 Dual-Rail Software Lockstep (`src/lockstep.c`)
-To protect against transient ALU bit-flips on Core 0 during voter execution:
-- Rail A evaluates the primary voter algorithm.
-- Rail B independently re-calculates pairwise differences and executes an algebraic median formula (`algebraic_median3`).
-- If Rail A and Rail B disagree on output value or fault classification, Core 0 immediately trips `failsafe_trigger(REASON_INTEGRITY_FAIL)`.
+### 6.3 Independent Dual-Rail Software Lockstep (`src/lockstep.c`)
+To protect against transient ALU bit-flips and corrupted voter status registers on Core 0 during voting:
+- **Rail A**: Evaluates the primary voter algorithm returning output PWM and status.
+- **Rail B (Independent Checker)**: Independently recomputes pairwise differences, derives the expected consensus status directly from raw outputs $y_1, y_2, y_3$, and computes expected PWM via an algebraic median formula (`algebraic_median3`) without relying on Rail A's reported status enum.
+- **Fail-Closed Verification**: Rail A's status and commanded PWM are compared directly against Rail B's independently computed status and PWM. There are no status-dependent fall-throughs or default pass-open paths. Any disagreement immediately trips `failsafe_trigger(REASON_INTEGRITY_FAIL)`.
 
 ---
 
 ## 7. Execution Supervision & Health Tracking
 
-### 7.1 Control-Flow Integrity (CFI) Checkpoints (`src/supervision.c`)
+### 7.1 Control-Flow Integrity (CFI) Checkpoints & Synchronization (`src/supervision.c`)
 Secondary cores report their execution progress through 5 monotonic token states:
 
 $$\text{INIT} \longrightarrow \text{READ\_INPUT} \longrightarrow \text{COMPUTE} \longrightarrow \text{WRITE\_OUTPUT} \longrightarrow \text{CANARY\_CHECK} \longrightarrow \text{COMPLETE}$$
 
-If a core skips a checkpoint, executes out of order, or halts mid-frame, its signature diverges to `0xFFFFFFFF` and it is flagged as faulted.
+- **Per-Frame Reset**: Before each dispatch, Core 0 explicitly resets each node's CFI signature to `CFI_TOKEN_INIT` using `supervision_reset_frame()`, preventing completion-token deadlock between consecutive frames.
+- **Memory Coherency Barriers**: Every CFI token write and frame reset executes an architectural `dmb()` memory barrier to ensure immediate visibility across all cores and prevent stale cache reads.
+- **Fault Trapping**: If a core skips a checkpoint, executes out of order, or halts mid-frame, its signature diverges to `0xFFFFFFFF` and it is isolated as faulted.
 
 ### 7.2 Leaky-Bucket Health Accumulator (`src/node_health.c`)
 Each node maintains a persistent health tracking record:
-- **Fault Accumulator**: Incremented whenever a node outputs an outlier, times out, or fails CFI.
+- **Fault Accumulator**: Incremented only when a node experiences a hard fault (deviation $> 15\,\mu\text{s}$), watchdog timeout, or CFI breach.
+- **Transient Noise Handling**: Transient deviations ($\le 15\,\mu\text{s}$) reset the good streak without advancing the fault counter, preserving 3-node redundancy against boundary noise.
 - **Permanent Latch-Out**: If a node accumulates $N = 3$ consecutive faults, it is permanently latched offline (`is_latched = true`) and excluded from subsequent voting rounds.
 - **Leaky Recovery**: A healthy node must complete $M = 100$ consecutive healthy frames to decay its fault counter by 1.
 

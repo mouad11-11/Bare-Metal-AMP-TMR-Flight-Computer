@@ -36,6 +36,9 @@ void supervision_init(void);
 /* Called by Arbiter prior to frame dispatch to prime CFI and supervision tokens */
 void supervision_frame_start(uint32_t expected_frame_id);
 
+/* Reset CFI signature and state for a single node prior to dispatch */
+void supervision_reset_frame(uint32_t core_id);
+
 /* Called by worker nodes at distinct execution checkpoints to advance signature */
 void supervision_checkpoint(uint32_t core_id, uint32_t token);
 

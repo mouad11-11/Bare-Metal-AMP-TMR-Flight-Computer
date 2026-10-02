@@ -53,6 +53,22 @@ SECTIONS
     _zone3_in  = ORIGIN(ZONE3);
     _zone3_out = ORIGIN(ZONE3) + 4;
 
+    /* Spatial Hardware Partitioning: Mailbox channels in dedicated RAM zones */
+    .mailbox_core1 (ORIGIN(ZONE1) + 0x100) (NOLOAD) : {
+        . = ALIGN(4);
+        *(.mailbox.core1)
+    } > ZONE1
+
+    .mailbox_core2 (ORIGIN(ZONE2) + 0x100) (NOLOAD) : {
+        . = ALIGN(4);
+        *(.mailbox.core2)
+    } > ZONE2
+
+    .mailbox_core3 (ORIGIN(ZONE3) + 0x100) (NOLOAD) : {
+        . = ALIGN(4);
+        *(.mailbox.core3)
+    } > ZONE3
+
     /* Discard unused sections */
     /DISCARD/ : {
         *(.note.GNU-stack)

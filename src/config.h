@@ -13,6 +13,9 @@
 /* Maximum pairwise difference (in microseconds) counted as node agreement */
 #define VOTE_AGREE_THRESHOLD_US     5
 
+/* Hard fault deviation threshold (in microseconds) required for permanent latch-out */
+#define HARD_FAULT_THRESHOLD_US     15
+
 /* Plausibility range of commanded actuator PWM pulse width (in microseconds) */
 #define PWM_MIN_US                  1000
 #define PWM_NEUTRAL_US              1500

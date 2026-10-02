@@ -14,11 +14,19 @@ void supervision_init(void) {
     }
 }
 
+void supervision_reset_frame(uint32_t core_id) {
+    if (core_id < 1 || core_id > 3) {
+        return;
+    }
+    s_nodes[core_id].cfi_signature = CFI_TOKEN_INIT;
+    s_nodes[core_id].is_timed_out = false;
+    dmb();
+}
+
 void supervision_frame_start(uint32_t expected_frame_id) {
     s_current_frame_id = expected_frame_id;
     for (uint32_t c = 1; c <= 3; c++) {
-        s_nodes[c].cfi_signature = CFI_TOKEN_INIT;
-        s_nodes[c].is_timed_out = false;
+        supervision_reset_frame(c);
     }
 }
 
@@ -47,6 +55,8 @@ void supervision_checkpoint(uint32_t core_id, uint32_t token) {
     } else {
         s_nodes[core_id].cfi_signature = 0xFFFFFFFFU; /* CFI divergence fault */
     }
+
+    dmb();
 }
 
 bool supervision_evaluate_nodes(uint32_t done_mask, uint32_t *fault_mask) {

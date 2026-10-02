@@ -1,32 +1,73 @@
 #include "mailbox.h"
 
-static mailbox_channel_t s_inbound_channels[4];
-static mailbox_channel_t s_outbound_channels[4];
+#if defined(__arm__) || defined(__thumb__)
+#define SECTION_CORE1 __attribute__((section(".mailbox.core1")))
+#define SECTION_CORE2 __attribute__((section(".mailbox.core2")))
+#define SECTION_CORE3 __attribute__((section(".mailbox.core3")))
+#else
+#define SECTION_CORE1
+#define SECTION_CORE2
+#define SECTION_CORE3
+#endif
+
+SECTION_CORE1 static mailbox_channel_t s_inbound_ch1;
+SECTION_CORE1 static mailbox_channel_t s_outbound_ch1;
+
+SECTION_CORE2 static mailbox_channel_t s_inbound_ch2;
+SECTION_CORE2 static mailbox_channel_t s_outbound_ch2;
+
+SECTION_CORE3 static mailbox_channel_t s_inbound_ch3;
+SECTION_CORE3 static mailbox_channel_t s_outbound_ch3;
+
+static mailbox_channel_t s_dummy_channel;
+
+static inline mailbox_channel_t* get_inbound_channel(uint32_t core_id) {
+    switch (core_id) {
+        case 1:  return &s_inbound_ch1;
+        case 2:  return &s_inbound_ch2;
+        case 3:  return &s_inbound_ch3;
+        default: return &s_dummy_channel;
+    }
+}
+
+static inline mailbox_channel_t* get_outbound_channel(uint32_t core_id) {
+    switch (core_id) {
+        case 1:  return &s_outbound_ch1;
+        case 2:  return &s_outbound_ch2;
+        case 3:  return &s_outbound_ch3;
+        default: return &s_dummy_channel;
+    }
+}
+
+static inline uint32_t get_free_slot(uint32_t read_slot, uint32_t latest_slot) {
+    for (uint32_t i = 0; i < 3; i++) {
+        if (i != read_slot && i != latest_slot) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+static void init_channel(mailbox_channel_t *ch) {
+    ch->write_slot = 0;
+    ch->latest_slot = 0;
+    ch->read_slot = 0;
+    for (uint32_t b = 0; b < 3; b++) {
+        ch->buffers[b].sequence_id = 0;
+        ch->buffers[b].payload = 0;
+        ch->buffers[b].timestamp_token = 0;
+        ch->buffers[b].crc32 = 0;
+    }
+}
 
 void mailbox_init(void) {
-    for (uint32_t i = 0; i < 4; i++) {
-        s_inbound_channels[i].active_idx = 0;
-        s_inbound_channels[i].buffers[0].sequence_id = 0;
-        s_inbound_channels[i].buffers[0].payload = 0;
-        s_inbound_channels[i].buffers[0].timestamp_token = 0;
-        s_inbound_channels[i].buffers[0].crc32 = 0;
-
-        s_inbound_channels[i].buffers[1].sequence_id = 0;
-        s_inbound_channels[i].buffers[1].payload = 0;
-        s_inbound_channels[i].buffers[1].timestamp_token = 0;
-        s_inbound_channels[i].buffers[1].crc32 = 0;
-
-        s_outbound_channels[i].active_idx = 0;
-        s_outbound_channels[i].buffers[0].sequence_id = 0;
-        s_outbound_channels[i].buffers[0].payload = 0;
-        s_outbound_channels[i].buffers[0].timestamp_token = 0;
-        s_outbound_channels[i].buffers[0].crc32 = 0;
-
-        s_outbound_channels[i].buffers[1].sequence_id = 0;
-        s_outbound_channels[i].buffers[1].payload = 0;
-        s_outbound_channels[i].buffers[1].timestamp_token = 0;
-        s_outbound_channels[i].buffers[1].crc32 = 0;
-    }
+    init_channel(&s_inbound_ch1);
+    init_channel(&s_outbound_ch1);
+    init_channel(&s_inbound_ch2);
+    init_channel(&s_outbound_ch2);
+    init_channel(&s_inbound_ch3);
+    init_channel(&s_outbound_ch3);
+    init_channel(&s_dummy_channel);
     dmb();
 }
 
@@ -56,17 +97,18 @@ bool mailbox_verify_crc(const mailbox_msg_t *msg) {
 
 void mailbox_send_input(uint32_t core_id, uint32_t seq, int32_t sensor_val) {
     if (core_id < 1 || core_id > 3) return;
-    mailbox_channel_t *ch = &s_inbound_channels[core_id];
-    uint32_t next_idx = 1U - ch->active_idx;
+    mailbox_channel_t *ch = get_inbound_channel(core_id);
+    uint32_t free_slot = get_free_slot(ch->read_slot, ch->latest_slot);
+    ch->write_slot = free_slot;
 
-    mailbox_msg_t *msg = &ch->buffers[next_idx];
+    mailbox_msg_t *msg = &ch->buffers[free_slot];
     msg->sequence_id = seq;
     msg->payload = sensor_val;
     msg->timestamp_token = seq;
     msg->crc32 = mailbox_calc_crc(msg);
 
     dmb();
-    ch->active_idx = next_idx;
+    ch->latest_slot = free_slot;
     dmb();
 }
 
@@ -74,11 +116,12 @@ mailbox_status_t mailbox_read_input(uint32_t core_id, uint32_t expected_seq, int
     if (!out_val) return MAILBOX_ERR_NULL;
     if (core_id < 1 || core_id > 3) return MAILBOX_ERR_INVALID_CORE;
 
-    mailbox_channel_t *ch = &s_inbound_channels[core_id];
-    uint32_t active = ch->active_idx;
+    mailbox_channel_t *ch = get_inbound_channel(core_id);
+    uint32_t local_slot = ch->latest_slot;
     dmb();
 
-    mailbox_msg_t msg = ch->buffers[active];
+    mailbox_msg_t msg = ch->buffers[local_slot];
+    ch->read_slot = local_slot;
     dmb();
 
     if (!mailbox_verify_crc(&msg)) {
@@ -94,17 +137,18 @@ mailbox_status_t mailbox_read_input(uint32_t core_id, uint32_t expected_seq, int
 
 void mailbox_send_output(uint32_t core_id, uint32_t seq, int32_t pwm_val) {
     if (core_id < 1 || core_id > 3) return;
-    mailbox_channel_t *ch = &s_outbound_channels[core_id];
-    uint32_t next_idx = 1U - ch->active_idx;
+    mailbox_channel_t *ch = get_outbound_channel(core_id);
+    uint32_t free_slot = get_free_slot(ch->read_slot, ch->latest_slot);
+    ch->write_slot = free_slot;
 
-    mailbox_msg_t *msg = &ch->buffers[next_idx];
+    mailbox_msg_t *msg = &ch->buffers[free_slot];
     msg->sequence_id = seq;
     msg->payload = pwm_val;
     msg->timestamp_token = seq;
     msg->crc32 = mailbox_calc_crc(msg);
 
     dmb();
-    ch->active_idx = next_idx;
+    ch->latest_slot = free_slot;
     dmb();
 }
 
@@ -112,11 +156,12 @@ mailbox_status_t mailbox_read_output(uint32_t core_id, uint32_t expected_seq, in
     if (!out_val) return MAILBOX_ERR_NULL;
     if (core_id < 1 || core_id > 3) return MAILBOX_ERR_INVALID_CORE;
 
-    mailbox_channel_t *ch = &s_outbound_channels[core_id];
-    uint32_t active = ch->active_idx;
+    mailbox_channel_t *ch = get_outbound_channel(core_id);
+    uint32_t local_slot = ch->latest_slot;
     dmb();
 
-    mailbox_msg_t msg = ch->buffers[active];
+    mailbox_msg_t msg = ch->buffers[local_slot];
+    ch->read_slot = local_slot;
     dmb();
 
     if (!mailbox_verify_crc(&msg)) {
@@ -128,4 +173,9 @@ mailbox_status_t mailbox_read_output(uint32_t core_id, uint32_t expected_seq, in
 
     *out_val = msg.payload;
     return MAILBOX_OK;
+}
+
+mailbox_channel_t* mailbox_get_channel(uint32_t core_id, bool is_inbound) {
+    if (core_id < 1 || core_id > 3) return NULL;
+    return is_inbound ? get_inbound_channel(core_id) : get_outbound_channel(core_id);
 }

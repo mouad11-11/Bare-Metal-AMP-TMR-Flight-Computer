@@ -54,10 +54,6 @@ static void test_nominal_lockstep_scenarios(void) {
     voter_result_t r5 = vote_2oo3(1200, 1500, 1800);
     TEST_ASSERT(lockstep_verify_voter(1200, 1500, 1800, &r5) == true);
     TEST_ASSERT(r5.final_pwm == FAIL_SAFE_VALUE);
-
-    /* Other status pass-through (e.g. timeout) */
-    voter_result_t rt = { .status = VOTE_TIMEOUT_ERROR, .final_pwm = FAIL_SAFE_VALUE, .diff12 = 0, .diff23 = 0, .diff13 = 0 };
-    TEST_ASSERT(lockstep_verify_voter(1500, 1500, 1500, &rt) == true);
 }
 
 static void test_divergence_detection(void) {
@@ -117,6 +113,15 @@ static void test_divergence_detection(void) {
     voter_result_t bad_disagree = vote_2oo3(1200, 1500, 1800);
     bad_disagree.final_pwm = 1500; /* Should be FAIL_SAFE_VALUE */
     TEST_ASSERT(lockstep_verify_voter(1200, 1500, 1800, &bad_disagree) == false);
+
+    /* Corrupted voter status enum with nominal inputs */
+    failsafe_init();
+    voter_result_t bad_status = vote_2oo3(1500, 1500, 1500);
+    bad_status.status = VOTE_TIMEOUT_ERROR; /* Injected status enum corruption */
+    TEST_ASSERT(lockstep_verify_voter(1500, 1500, 1500, &bad_status) == false);
+    TEST_ASSERT(bad_status.final_pwm == FAIL_SAFE_VALUE);
+    TEST_ASSERT(failsafe_is_latched() == true);
+    TEST_ASSERT(failsafe_get_latched_reason() == REASON_INTEGRITY_FAIL);
 
     /* NULL res test */
     TEST_ASSERT(lockstep_verify_voter(1500, 1500, 1500, NULL) == false);
