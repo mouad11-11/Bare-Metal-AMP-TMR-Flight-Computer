@@ -1,8 +1,5 @@
 # Bare-Metal AMP TMR Flight Computer
 
-<p align="center">
-  <img src="assets/hero_banner.svg" alt="Bare-Metal AMP TMR Flight Computer Banner" width="100%">
-</p>
 
 <p align="center">
   <a href="https://developer.arm.com/"><img src="https://img.shields.io/badge/Target-ARM%20Cortex--A15-0284C7.svg?style=flat-square&logo=arm" alt="Target: ARM Cortex-A15"></a>
