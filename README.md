@@ -15,7 +15,7 @@
 
 ---
 
-## 🛰️ Executive Storyboard: Mitigating Radiation Faults Mid-Flight
+## 🛰️Mitigating Radiation Faults Mid-Flight
 
 In high-altitude flight and orbital avionics, ionizing radiation strikes silicon dies, triggering **Single Event Upsets (SEUs)**—bit-flips in registers, memory corruption, and processor lockups. A single flipped bit in an attitude-control calculation can cause catastrophic flight actuator divergence.
 
