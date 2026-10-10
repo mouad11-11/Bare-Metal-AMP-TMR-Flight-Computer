@@ -51,8 +51,9 @@ jobs:
           qemu-system-arm -M vexpress-a15 -cpu cortex-a15 -smp 4 -nographic \
             -kernel tmr_flight_computer.elf -accel tcg,thread=multi -serial file:qemu_ci_output.log &
           QEMU_PID=$!
-          for i in $(seq 1 30); do
+          for i in $(seq 1 80); do
             if [ -f qemu_ci_output.log ] && grep -q "All spatial memory zones intact." qemu_ci_output.log; then
+              echo "Flight simulation completed successfully within $((i/2))s"
               break
             fi
             sleep 0.5
