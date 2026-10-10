@@ -7,7 +7,6 @@
   <a href="https://github.com/mouad11-11/Bare-Metal-AMP-TMR-Flight-Computer/actions"><img src="https://img.shields.io/badge/CI-100%25%20Passing-10B981.svg?style=flat-square&logo=github-actions" alt="CI Status"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/Unit%20Tests-246%2C122%20Pass-059669.svg?style=flat-square" alt="Assertions"></a>
   <a href="tests/fi/"><img src="https://img.shields.io/badge/Fault%20Injection-113%20Vectors-D97706.svg?style=flat-square" alt="Fault Injection"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-6366F1.svg?style=flat-square" alt="License: MIT"></a>
 </p>
 
 <p align="center">
@@ -365,6 +364,6 @@ Each compute core must sequentially transition through 5 discrete token checkpoi
 
 ---
 
-## 📜 License & Acknowledgments
+## 📜 Acknowledgments
 
-This project is licensed under the [MIT License](LICENSE). Built as an open-source flight computer architecture demonstrator for bare-metal multi-core systems, fault-tolerant consensus mechanisms, and embedded software safety research.
+Built as an open-source flight computer architecture demonstrator for bare-metal multi-core systems, fault-tolerant consensus mechanisms, and embedded software safety research.
