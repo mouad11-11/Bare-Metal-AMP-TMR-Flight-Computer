@@ -124,21 +124,6 @@ secondary_wait_loop:
     /* Branch to task entry point */
     blx r2
 
-    /*
-     * Handshake: Wait for Core 0 to acknowledge completion and clear mailbox
-     * before re-entering WFE sleep to prevent duplicate execution.
-     * Uses WFE so secondary core rests in low-power state until Core 0 issues SEV.
-     */
-wait_mailbox_clear:
-    dmb
-    ldr r1, =secondary_spin_addr
-    ldr r2, [r1]
-    cmp r2, #0
-    beq 1f
-    wfe
-    b wait_mailbox_clear
-1:
-    dmb
     /* Re-enter low-power WFE loop for next flight frame */
     b secondary_wait_loop
 
